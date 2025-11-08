@@ -15,7 +15,7 @@ import java.util.List;
 
 public class ProductoService {
 
-    private final String RUTA_JSON = "data/productos.json"; // (2. La ruta en 'resources')
+    private final String RUTA_JSON = "src/main/resources/data/productos.json"; // (2. La ruta en 'resources')
 
     /**
      * Esta es la Historia de Usuario: "Consultar Productos"
