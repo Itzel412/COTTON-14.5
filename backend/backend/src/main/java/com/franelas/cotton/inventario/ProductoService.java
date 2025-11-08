@@ -1,17 +1,18 @@
 // itzel puso esto para tomarlo de ejemplo
 
-
 package com.franelas.cotton.inventario;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.stereotype.Service; // (Importante para Spring)
 
+import java.io.File;
 import java.io.InputStream;
 import java.util.Collections;
 import java.util.List;
 
 @Service // <-- (1. Le dice a Spring que esta clase es un Servicio)
+
 public class ProductoService {
 
     private final String RUTA_JSON = "data/productos.json"; // (2. La ruta en 'resources')
@@ -54,14 +55,51 @@ public class ProductoService {
 
     /**
      * Esta es la Historia de Usuario: "Registrar Producto"
-     * (La dejaremos para después)
+     * Le entran los datos de un productos, busca el archivo json o lo crea y agrega el producto al archivo
      *
      * @param nuevoProducto El producto a añadir.
-     * @return El producto guardado (aún no implementado).
+     * @return true si el producto se guardo, false si no.
      */
-    public Producto crearProducto(Producto nuevoProducto) {
-        // TODO: Implementar la lógica para AÑADIR al JSON
-        System.out.println("LOGICA PENDIENTE: Guardar producto nuevo.");
-        return nuevoProducto;
+    public boolean registrarProducto(Producto nuevoProducto) {
+
+        ObjectMapper mapper = new ObjectMapper();
+
+        try{
+            File jsonFile = new File(RUTA_JSON);
+            List<Producto> productos;
+
+            if (jsonFile.exists() && jsonFile.length() > 0) {
+                TypeReference<List<Producto>> typeReference = new TypeReference<List<Producto>>() {};
+                productos = mapper.readValue(jsonFile, typeReference);
+            } else {
+
+                //en caso de que el archivo no exista o este vacio
+                productos = new java.util.ArrayList<>();
+                System.err.println("Error al leer el archivo " + RUTA_JSON);
+            }
+
+            // Asegurar un id unico que no se repita, si el id es 0 ponemos el proximo disponible
+            if (nuevoProducto.getId() == 0){
+                long nextId = productos.stream().mapToLong(Producto::getId).max().orElse(0) + 1;
+                nuevoProducto.setId(nextId);
+            }
+
+            // Agregar producto a la lista
+            productos.add(nuevoProducto);
+
+            // devolver al JSON
+            mapper.writerWithDefaultPrettyPrinter().writeValue(jsonFile,productos);
+            // writeValue, agarra la lista productos y la escribe en formato Jason
+            //writerWithDefaultPrettyPrinter, es para que el jason se vea mas bonito a la hora de leerlo
+
+            System.out.println("Producto" + nuevoProducto.getNombre() + " registrado exitosamente");
+            return true;  // exito
+
+        } catch (Exception e){
+            System.err.println("Error al leer el archivo " + e.getMessage());
+            e.printStackTrace();
+            return false;  //  fallo
+        }
     }
+
 }

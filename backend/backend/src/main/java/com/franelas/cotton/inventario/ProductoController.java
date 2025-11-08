@@ -2,7 +2,6 @@
 
 
 package com.franelas.cotton.inventario;
-
 import org.springframework.web.bind.annotation.*; // (1. Importa todas las anotaciones web)
 
 import java.util.List;
@@ -37,8 +36,8 @@ public class ProductoController {
      * URL: POST http://localhost:8080/api/inventario/productos
      */
     @PostMapping("/productos") // (8. Mapea peticiones POST a esta URL)
-    public Producto registrarProducto(@RequestBody Producto nuevoProducto) {
+    public boolean registrarProducto(@RequestBody Producto nuevoProducto) {
         // (9. @RequestBody toma el JSON del frontend y lo convierte en un objeto Producto)
-        return productoService.crearProducto(nuevoProducto);
+        return productoService.registrarProducto(nuevoProducto);
     }
 }
