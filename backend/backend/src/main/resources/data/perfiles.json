@@ -4,7 +4,7 @@
         "id": 1,
         "nombre": "Itzel La Rosa",
         "correo": "itzel@correo.com",
-        "contrasena": "123456",
+        "clave": "123456",
         "direccion": "Caracas",
         "telefono": "04121234567",
         "rol": "ADMIN"
@@ -13,7 +13,7 @@
         "id": 2,
         "nombre": "Carlos Belfort",
         "correo": "carlos@correo.com",
-        "contrasena": "abcde",
+        "clave": "abcde",
         "direccion": "Calle 4, Valencia",
         "telefono": "0414-7654321",
         "rol": "CLIENTE"
