@@ -15,7 +15,7 @@ public class PedidoService {
     private final String RUTA_JSON = "backend/backend/src/main/resources/data/pedidos.json";
     private final ObjectMapper mapper = new ObjectMapper();
 
-    // 🧾 Validar reglas del ERS
+    // Validar reglas del ERS
     public boolean validarPedido(Pedido pedido) {
         if (pedido.getCantidad() > 10) {
             System.err.println("Error: no se pueden pedir más de 10 unidades del mismo producto.");
@@ -28,7 +28,7 @@ public class PedidoService {
         return true;
     }
 
-    // 📦 Guardar un nuevo pedido
+    //  Guardar un nuevo pedido
     public boolean registrarPedido(Pedido nuevoPedido) {
         try {
             File jsonFile = new File(RUTA_JSON);
@@ -51,7 +51,7 @@ public class PedidoService {
         }
     }
 
-    // 🔍 Consultar todos los pedidos
+    // Consultar todos los pedidos
     public List<Pedido> obtenerPedidos() {
         try {
             File jsonFile = new File(RUTA_JSON);
