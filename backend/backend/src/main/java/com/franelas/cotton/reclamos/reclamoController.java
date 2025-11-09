@@ -31,4 +31,3 @@ public class reclamoController {
         return reclamoService.obtenerReclamos();
     }
 }
-//.
