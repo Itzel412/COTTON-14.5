@@ -5,29 +5,21 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/reclamos")
-public class reclamoController {
+public class ReclamoController {
 
-    private final reclamoService reclamoService;
+    private final ReclamoService ReclamoService;
 
-    public reclamoController(reclamoService reclamoService) {
-        this.reclamoService = reclamoService;
+    public ReclamoController(ReclamoService reclamoService) {
+        this.ReclamoService = reclamoService;
     }
 
-    /**
-     * HISTORIA DE USUARIO: "Crear Reclamo"
-     * POST /api/reclamos
-     */
     @PostMapping
-    public boolean crearReclamo(@RequestBody reclamo nuevoReclamo) {
-        return reclamoService.registrarReclamo(nuevoReclamo);
+    public boolean crearReclamo(@RequestBody Reclamo nuevoReclamo) {
+        return ReclamoService.registrarReclamo(nuevoReclamo);
     }
 
-    /**
-     * HISTORIA DE USUARIO: "Listar Reclamos"
-     * GET /api/reclamos
-     */
     @GetMapping
-    public List<reclamo> listarReclamos() {
-        return reclamoService.obtenerReclamos();
+    public List<Reclamo> listarReclamos() {
+        return ReclamoService.obtenerReclamos();
     }
 }

@@ -2,20 +2,18 @@ package com.franelas.cotton.reclamos;
 
 import java.util.UUID;
 
-public class reclamo {
+public class Reclamo {
     private String id;
     private String usuario;
     private String pedidoId;
     private String motivo;
     private String descripcion;
-    private String estado; // ABIERTO, EN_PROCESO, RESUELTO, CERRADO
+    private String estado;
     private String fecha;
 
-    // Constructor vacío (necesario para Jackson)
-    public reclamo() {}
+    public Reclamo() {}
 
-    // Constructor completo (genera id automáticamente)
-    public reclamo(String usuario, String pedidoId, String motivo, String descripcion, String fecha) {
+    public Reclamo(String usuario, String pedidoId, String motivo, String descripcion, String fecha) {
         this.id = UUID.randomUUID().toString();
         this.usuario = usuario;
         this.pedidoId = pedidoId;
@@ -25,7 +23,6 @@ public class reclamo {
         this.fecha = fecha;
     }
 
-    // Getters y setters
     public String getId() { return id; }
     public void setId(String id) { this.id = id; }
 

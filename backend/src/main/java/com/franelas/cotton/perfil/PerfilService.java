@@ -1,4 +1,3 @@
-// En: com/franelas/cotton/perfil/PerfilService.java
 package com.franelas.cotton.perfil;
 
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -13,16 +12,10 @@ import java.util.ArrayList;
 @Service
 public class PerfilService {
 
-    // (¡Cambio!) Ruta al archivo de perfiles
-    private final String RUTA_JSON = "backend/backend/src/main/resources/data/perfiles.json";
+    private final String RUTA_JSON = "src/main/resources/data/perfiles.json";
 
-    /**
-     * HISTORIA DE USUARIO: "Consultar Perfiles"
-     */
     public List<Perfil> obtenerTodosLosPerfiles() {
         ObjectMapper mapper = new ObjectMapper();
-
-        // (¡Cambio!) Usamos Perfil
         TypeReference<List<Perfil>> typeReference = new TypeReference<List<Perfil>>() {};
 
         try {
@@ -33,9 +26,7 @@ public class PerfilService {
                 return Collections.emptyList();
             }
 
-            // (¡Cambio!) Leemos List<Perfil>
-            List<Perfil> perfiles = mapper.readValue(jsonFile, typeReference);
-            return perfiles;
+            return mapper.readValue(jsonFile, typeReference);
 
         } catch (Exception e) {
             System.err.println("Error al leer el archivo JSON: " + e.getMessage());
@@ -44,9 +35,6 @@ public class PerfilService {
         }
     }
 
-    /**
-     * HISTORIA DE USUARIO: "Crear Perfil"
-     */
     public boolean registrarPerfil(Perfil nuevoPerfil) {
         ObjectMapper mapper = new ObjectMapper();
 
@@ -55,7 +43,6 @@ public class PerfilService {
             List<Perfil> perfiles;
 
             if (jsonFile.exists() && jsonFile.length() > 0) {
-                // (¡Cambio!) Usamos Perfil
                 TypeReference<List<Perfil>> typeReference = new TypeReference<List<Perfil>>() {};
                 perfiles = mapper.readValue(jsonFile, typeReference);
             } else {
@@ -63,9 +50,11 @@ public class PerfilService {
                 System.err.println("Archivo no encontrado o vacío, creando lista nueva: " + RUTA_JSON);
             }
 
-            // (¡Cambio!) Asegurar un ID único para Perfil
             if (nuevoPerfil.getId() == 0) {
-                long nextId = perfiles.stream().mapToLong(Perfil::getId).max().orElse(0) + 1;
+                long nextId = perfiles.stream()
+                        .mapToLong(Perfil::getId)
+                        .max()
+                        .orElse(0) + 1;
                 nuevoPerfil.setId(nextId);
             }
 
@@ -73,12 +62,22 @@ public class PerfilService {
             mapper.writerWithDefaultPrettyPrinter().writeValue(jsonFile, perfiles);
 
             System.out.println("Perfil " + nuevoPerfil.getNombre() + " registrado exitosamente");
-            return true;  // éxito
+            return true;
 
         } catch (Exception e) {
             System.err.println("Error al escribir el archivo JSON: " + e.getMessage());
             e.printStackTrace();
-            return false;  // fallo
+            return false;
         }
+    }
+
+    public Perfil buscarPorCorreoYClave(String correo, String clave) {
+        List<Perfil> perfiles = obtenerTodosLosPerfiles();
+
+        return perfiles.stream()
+                .filter(p -> p.getCorreo().equalsIgnoreCase(correo)
+                        && p.getClave().equals(clave))
+                .findFirst()
+                .orElse(null);
     }
 }

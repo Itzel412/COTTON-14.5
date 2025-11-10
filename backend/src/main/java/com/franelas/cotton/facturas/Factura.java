@@ -2,7 +2,7 @@ package com.franelas.cotton.facturas;
 
 import java.util.UUID;
 
-public class factura {
+public class Factura {
     private String id;
     private String usuario;
     private String pedidoId;
@@ -10,13 +10,11 @@ public class factura {
     private double impuestos;
     private double total;
     private String fecha;
-    private String estado; // POR_PAGAR, PAGADA, ANULADA
+    private String estado;
 
-    // Constructor vacío (necesario para Jackson)
-    public factura() {}
+    public Factura() {}
 
-    // Constructor completo (genera id automáticamente)
-    public factura(String usuario, String pedidoId, double subtotal, double impuestos, String fecha, String estado) {
+    public Factura(String usuario, String pedidoId, double subtotal, double impuestos, String fecha, String estado) {
         this.id = UUID.randomUUID().toString();
         this.usuario = usuario;
         this.pedidoId = pedidoId;
@@ -27,7 +25,6 @@ public class factura {
         this.estado = estado;
     }
 
-    // Getters y setters
     public String getId() { return id; }
     public void setId(String id) { this.id = id; }
 

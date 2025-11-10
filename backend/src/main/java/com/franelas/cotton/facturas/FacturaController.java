@@ -1,33 +1,27 @@
 package com.franelas.cotton.facturas;
 
 import org.springframework.web.bind.annotation.*;
+
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/facturas")
-public class facturaController {
+@CrossOrigin(origins = "http://localhost:5173")
+public class FacturaController {
 
-    private final facturaService facturaService;
+    private final FacturaService facturaService;
 
-    public facturaController(facturaService facturaService) {
+    public FacturaController(FacturaService facturaService) {
         this.facturaService = facturaService;
     }
 
-    /**
-     * HISTORIA DE USUARIO: "Crear Factura"
-     * POST http://localhost:8081/api/facturas
-     */
-    @PostMapping
-    public boolean crearFactura(@RequestBody factura nuevaFactura) {
+    @PostMapping("/crear")
+    public boolean crearFactura(@RequestBody Factura nuevaFactura) {
         return facturaService.registrarFactura(nuevaFactura);
     }
 
-    /**
-     * HISTORIA DE USUARIO: "Listar Facturas"
-     * GET http://localhost:8081/api/facturas
-     */
-    @GetMapping
-    public List<factura> listarFacturas() {
+    @GetMapping("/todas")
+    public List<Factura> listarFacturas() {
         return facturaService.obtenerFacturas();
     }
 }

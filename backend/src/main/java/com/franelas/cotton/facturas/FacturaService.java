@@ -6,60 +6,69 @@ import org.springframework.stereotype.Service;
 
 import java.io.File;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 
 @Service
-public class facturaService {
+public class FacturaService {
 
-    private final String RUTA_JSON = "backend/backend/src/main/resources/data/facturas.json";
+    private final String RUTA_JSON = "src/main/resources/data/facturas.json";
     private final ObjectMapper mapper = new ObjectMapper();
 
-    /**
-     * Registra una nueva factura en el archivo JSON.
-     */
-    public boolean registrarFactura(factura nuevaFactura) {
+    public List<Factura> obtenerFacturas() {
         try {
             File jsonFile = new File(RUTA_JSON);
-            List<factura> facturas;
 
             if (jsonFile.exists() && jsonFile.length() > 0) {
-                facturas = mapper.readValue(jsonFile, new TypeReference<List<factura>>() {});
+                return mapper.readValue(
+                        jsonFile,
+                        new TypeReference<List<Factura>>() {}
+                );
             } else {
-                facturas = new ArrayList<>();
+                return new ArrayList<>();
             }
+        } catch (Exception e) {
+            System.err.println("Error al leer facturas: " + e.getMessage());
+            e.printStackTrace();
+            return new ArrayList<>();
+        }
+    }
 
-            // Si no trae id, se asume que el constructor ya la asignó
+    public boolean registrarFactura(Factura nuevaFactura) {
+        try {
+            File jsonFile = new File(RUTA_JSON);
+            List<Factura> facturas = obtenerFacturas(); // reutilizamos el método
+
             if (nuevaFactura.getId() == null || nuevaFactura.getId().isEmpty()) {
-                // no se fuerza cambio: constructor debe asignar id
+
+                long nextId = facturas.stream()
+                        .map(Factura::getId)             // String
+                        .filter(Objects::nonNull)
+                        .map(String::trim)
+                        .filter(s -> !s.isEmpty())
+                        .mapToLong(s -> {
+                            try {
+                                return Long.parseLong(s);
+                            } catch (NumberFormatException e) {
+                                return 0L;
+                            }
+                        })
+                        .max()
+                        .orElse(0L) + 1;
+
+                nuevaFactura.setId(String.valueOf(nextId));
             }
 
             facturas.add(nuevaFactura);
             mapper.writerWithDefaultPrettyPrinter().writeValue(jsonFile, facturas);
 
-            System.out.println("Factura guardada correctamente con ID: " + nuevaFactura.getId());
+            System.out.println("Factura registrada correctamente: " + nuevaFactura.getId());
             return true;
+
         } catch (Exception e) {
-            System.err.println("Error al guardar factura: " + e.getMessage());
+            System.err.println("Error al registrar factura: " + e.getMessage());
             e.printStackTrace();
             return false;
-        }
-    }
-
-    /**
-     * Obtiene todas las facturas desde el archivo JSON.
-     */
-    public List<factura> obtenerFacturas() {
-        try {
-            File jsonFile = new File(RUTA_JSON);
-            if (!jsonFile.exists() || jsonFile.length() == 0) {
-                return Collections.emptyList();
-            }
-            return mapper.readValue(jsonFile, new TypeReference<List<factura>>() {});
-        } catch (Exception e) {
-            System.err.println("Error al leer facturas: " + e.getMessage());
-            e.printStackTrace();
-            return Collections.emptyList();
         }
     }
 }

@@ -8,13 +8,11 @@ public class Perfil {
     private String clave;
     private String direccion;
     private String telefono;
-    private String rol; // "CLIENTE" o "ADMIN"
+    private String rol;
 
-    // Constructor vacío (necesario para Jackson)
     public Perfil() {
     }
 
-    // Constructor completo
     public Perfil(long id, String nombre, String correo, String clave, String direccion, String telefono, String rol) {
         this.id = id;
         this.nombre = nombre;
@@ -24,10 +22,6 @@ public class Perfil {
         this.telefono = telefono;
         this.rol = rol;
     }
-
-    // --- Getters y Setters ---
-    // (IntelliJ puede generarlos automáticamente)
-    // (Clic derecho > Generate... > Getters and Setters > Seleccionar todos)
 
     public long getId() { return id; }
     public void setId(long id) { this.id = id; }

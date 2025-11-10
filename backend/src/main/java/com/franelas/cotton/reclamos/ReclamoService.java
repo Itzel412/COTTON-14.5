@@ -10,24 +10,24 @@ import java.util.Collections;
 import java.util.List;
 
 @Service
-public class reclamoService {
+public class ReclamoService {
 
     private final String RUTA_JSON = "backend/backend/src/main/resources/data/reclamos.json";
     private final ObjectMapper mapper = new ObjectMapper();
 
-    public boolean registrarReclamo(reclamo nuevoReclamo) {
+    public boolean registrarReclamo(Reclamo nuevoReclamo) {
         try {
             File jsonFile = new File(RUTA_JSON);
-            List<reclamo> reclamos;
+            List<Reclamo> Reclamos;
 
             if (jsonFile.exists() && jsonFile.length() > 0) {
-                reclamos = mapper.readValue(jsonFile, new TypeReference<List<reclamo>>() {});
+                Reclamos = mapper.readValue(jsonFile, new TypeReference<List<Reclamo>>() {});
             } else {
-                reclamos = new ArrayList<>();
+                Reclamos = new ArrayList<>();
             }
 
-            reclamos.add(nuevoReclamo);
-            mapper.writerWithDefaultPrettyPrinter().writeValue(jsonFile, reclamos);
+            Reclamos.add(nuevoReclamo);
+            mapper.writerWithDefaultPrettyPrinter().writeValue(jsonFile, Reclamos);
 
             System.out.println("Reclamo guardado correctamente con ID: " + nuevoReclamo.getId());
             return true;
@@ -38,13 +38,13 @@ public class reclamoService {
         }
     }
 
-    public List<reclamo> obtenerReclamos() {
+    public List<Reclamo> obtenerReclamos() {
         try {
             File jsonFile = new File(RUTA_JSON);
             if (!jsonFile.exists() || jsonFile.length() == 0) {
                 return Collections.emptyList();
             }
-            return mapper.readValue(jsonFile, new TypeReference<List<reclamo>>() {});
+            return mapper.readValue(jsonFile, new TypeReference<List<Reclamo>>() {});
         } catch (Exception e) {
             System.err.println("Error al leer reclamos: " + e.getMessage());
             e.printStackTrace();
