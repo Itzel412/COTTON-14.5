@@ -1,59 +1,81 @@
 <script setup>
 import { ref } from 'vue';
+
 import LoginView from './views/LoginView.vue';
-import HeaderBar from './components/HeaderBar.vue';
 import DashboardView from './views/DashboardView.vue';
 import PerfilView from './views/PerfilView.vue';
+// importa los otros módulos que ya tengas
+// import InventarioView from './views/InventarioView.vue';
+// import PedidosView from './views/PedidosView.vue';
+// import FacturasView from './views/FacturasView.vue';
+// import ReclamosView from './views/ReclamosView.vue';
+import HeaderBar from './components/HeaderBar.vue';
 
-const isLoggedIn = ref(false);
 const currentUser = ref(null);
-const currentView = ref('dashboard'); 
+const currentModule = ref('dashboard');
 
 const handleLoginSuccess = (user) => {
-  isLoggedIn.value = true;
   currentUser.value = user;
-  currentView.value = 'dashboard';
+  currentModule.value = 'dashboard';
 };
 
 const handleLogout = () => {
-  isLoggedIn.value = false;
   currentUser.value = null;
-  currentView.value = 'dashboard';
+  currentModule.value = 'dashboard';
 };
 
-const goToView = (viewName) => {
-  currentView.value = viewName;
+const handleOpenModule = (modulo) => {
+  currentModule.value = modulo;
 };
 </script>
 
+
 <template>
   <div id="app">
-    <LoginView v-if="!isLoggedIn" @login-success="handleLoginSuccess" />
+    <!-- Si no hay usuario, mostrar login -->
+    <LoginView v-if="!currentUser" @login-success="handleLoginSuccess" />
 
+    <!-- Si hay usuario logueado, mostrar panel -->
     <div v-else>
       <HeaderBar
-        :current-user="currentUser"
+        :currentUser="currentUser"
+        @go-home="currentModule = 'dashboard'"
         @logout="handleLogout"
-        @go-home="goToView('dashboard')"
+        @open-profile="currentModule = 'perfiles'"
       />
 
       <main class="app-main">
         <DashboardView
-          v-if="currentView === 'dashboard'"
-          :current-user="currentUser"
-          @go-to="goToView"
+          v-if="currentModule === 'dashboard'"
+          :currentUser="currentUser"
+          @open-module="handleOpenModule"
         />
 
         <PerfilView
-          v-else-if="currentView === 'perfil'"
-          :current-user="currentUser"
+          v-else-if="currentModule === 'perfiles'"
+          :currentUser="currentUser"
         />
 
-        <p v-else style="margin-top: 2rem;" >
-          (Vista {{ currentView }} aún no implementada.)
-        </p>
-      </main>   
-
+        <!-- EJEMPLOS: otros módulos -->
+        <!--
+        <InventarioView
+          v-else-if="currentModule === 'inventario'"
+          :currentUser="currentUser"
+        />
+        <PedidosView
+          v-else-if="currentModule === 'pedidos'"
+          :currentUser="currentUser"
+        />
+        <FacturasView
+          v-else-if="currentModule === 'facturas'"
+          :currentUser="currentUser"
+        />
+        <ReclamosView
+          v-else-if="currentModule === 'reclamos'"
+          :currentUser="currentUser"
+        />
+        -->
+      </main>
     </div>
   </div>
 </template>

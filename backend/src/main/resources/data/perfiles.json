@@ -30,4 +30,12 @@
   "direccion" : "El paraiso",
   "telefono" : "041233894060",
   "rol" : "ADMIN"
+}, {
+  "id" : 5,
+  "nombre" : "Valeria Martinez",
+  "correo" : "vale.o@correo.com",
+  "clave" : "Valeriam",
+  "direccion" : "Valencia",
+  "telefono" : "0412726267268",
+  "rol" : "CLIENTE"
 } ]

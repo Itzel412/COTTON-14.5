@@ -163,7 +163,7 @@ const handleRegister = async () => {
   align-items: center;
   justify-content: center;
   padding: 1.5rem;
-  background: linear-gradient(135deg, #1c262e 0%, #f7f0e8 100%);
+  background: linear-gradient(135deg, #1c262e 10%, #f7f0e8 100%);
 }
 
 .login-box {
