@@ -7,7 +7,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/reclamos")
-@CrossOrigin(origins = "http://localhost:5173") 
+@CrossOrigin(origins = "http://localhost:5173")
 public class ReclamoController {
 
     private final ReclamoService reclamoService;
@@ -28,8 +28,10 @@ public class ReclamoController {
     }
 
     @PutMapping("/{id}/estado")
-    public ResponseEntity<Boolean> actualizarEstado(@PathVariable long id,
-                                                    @RequestBody String estadoRaw) {
+    public ResponseEntity<Boolean> actualizarEstado(
+            @PathVariable("id") long id,        // 🔹 NOMBRE EXPLÍCITO
+            @RequestBody String estadoRaw
+    ) {
         try {
             if (estadoRaw == null) {
                 return ResponseEntity.ok(false);

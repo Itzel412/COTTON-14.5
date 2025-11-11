@@ -4,12 +4,12 @@
   "titulo" : "Camisa desteñida",
   "descripcion" : "La camisa esta dessteñida k,vjhfyjdjmyjymfmyjjefkjhkfjaksjflkasjflkjaskfjlakjsflkjak",
   "fechaCreacion" : "2025-11-11 08:37",
-  "estado" : "Pendiente"
+  "estado" : "EN_PROCESO"
 }, {
   "id" : 2,
   "usuario" : "canino1@correo.com",
   "titulo" : "Reclamo ejemplo",
   "descripcion" : "klsajdkjakjlakjflkjskdlfjakjdfoadsjfkjadskfjkasdjfksdjfkjsdlkfjlskdjflsjkd",
   "fechaCreacion" : "2025-11-11 08:50",
-  "estado" : "PENDIENTE"
+  "estado" : "EN_PROCESO"
 } ]
