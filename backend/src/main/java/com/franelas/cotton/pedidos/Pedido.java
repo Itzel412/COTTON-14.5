@@ -1,43 +1,23 @@
 package com.franelas.cotton.pedidos;
 
-import java.util.UUID;
-
 public class Pedido {
-    private String id;          // Identificador único
-    private String usuario;     // Usuario que realiza el pedido
-    private long idProducto;    // ID del producto (referencia del inventario)
-    private String nombre;      // Nombre del producto
-    private String color;       // Color de la prenda
-    private String talla;       // "S", "M", "L", "XL"
-    private int cantidad;       // Máximo 10 unidades
+    private long id;
+    private String usuario;
+    private long idProducto;     // referencia al producto del inventario
+    private String nombre;       // nombre del producto
+    private String color;        // color del producto
+    private String talla;        // talla (S, M, L, XL)
+    private int cantidad;        // cantidad pedida
     private double precioUnitario;
-    private double total;       // Calculado automáticamente
-    private String fecha;       // Fecha del pedido
+    private double total;
+    private String fecha;        // fecha del pedido
 
-    // --- Getters y Setters ---
-    public String getId() { return id; }
-    public String getUsuario() { return usuario; }
-    public long getIdProducto() { return idProducto; }
-    public String getNombre() { return nombre; }
-    public String getColor() { return color; }
-    public String getTalla() { return talla; }
-    public int getCantidad() { return cantidad; }
-    public double getPrecioUnitario() { return precioUnitario; }
-    public double getTotal() { return total; }
-    public String getFecha() { return fecha; }
+    // Constructor vacío (Jackson lo necesita)
+    public Pedido() {}
 
-    public void setId(String id) { this.id = id; }
-    public void setUsuario(String usuario) { this.usuario = usuario; }
-    public void setIdProducto(long idProducto) { this.idProducto = idProducto; }
-    public void setNombre(String nombre) { this.nombre = nombre; }
-    public void setColor(String color) { this.color = color; }
-    public void setTalla(String talla) { this.talla = talla; }
-    public void setCantidad(int cantidad) { this.cantidad = cantidad; }
-    public void setPrecioUnitario(double precioUnitario) { this.precioUnitario = precioUnitario; }
-    public void setFecha(String fecha) { this.fecha = fecha; }
-
-    public Pedido(String usuario, long idProducto, String nombre, String color, String talla, int cantidad, double precioUnitario, String fecha) {
-        this.id = UUID.randomUUID().toString();
+    // Constructor completo (opcional, para pruebas o creación manual)
+    public Pedido(long id, String usuario, long idProducto, String nombre, String color, String talla, int cantidad, double precioUnitario, String fecha) {
+        this.id = id;
         this.usuario = usuario;
         this.idProducto = idProducto;
         this.nombre = nombre;
@@ -49,4 +29,34 @@ public class Pedido {
         this.fecha = fecha;
     }
 
+    // --- Getters y Setters ---
+    public long getId() { return id; }
+    public void setId(long id) { this.id = id; }
+
+    public String getUsuario() { return usuario; }
+    public void setUsuario(String usuario) { this.usuario = usuario; }
+
+    public long getIdProducto() { return idProducto; }
+    public void setIdProducto(long idProducto) { this.idProducto = idProducto; }
+
+    public String getNombre() { return nombre; }
+    public void setNombre(String nombre) { this.nombre = nombre; }
+
+    public String getColor() { return color; }
+    public void setColor(String color) { this.color = color; }
+
+    public String getTalla() { return talla; }
+    public void setTalla(String talla) { this.talla = talla; }
+
+    public int getCantidad() { return cantidad; }
+    public void setCantidad(int cantidad) { this.cantidad = cantidad; }
+
+    public double getPrecioUnitario() { return precioUnitario; }
+    public void setPrecioUnitario(double precioUnitario) { this.precioUnitario = precioUnitario; }
+
+    public double getTotal() { return total; }
+    public void setTotal(double total) { this.total = total; }
+
+    public String getFecha() { return fecha; }
+    public void setFecha(String fecha) { this.fecha = fecha; }
 }

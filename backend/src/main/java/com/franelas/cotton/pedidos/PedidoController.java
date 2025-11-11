@@ -14,23 +14,20 @@ public class PedidoController {
     }
 
     /**
-     * HISTORIA DE USUARIO: "Realizar Pedido"
+     * Crear pedido
      * URL: POST http://localhost:8080/api/pedidos
      */
     @PostMapping
     public boolean crearPedido(@RequestBody Pedido nuevoPedido) {
-        if (!pedidoService.validarPedido(nuevoPedido)) {
-            return false;
-        }
         return pedidoService.registrarPedido(nuevoPedido);
     }
 
     /**
-     * HISTORIA DE USUARIO: "Ver Pedido"
+     * Consultar todos los pedidos
      * URL: GET http://localhost:8080/api/pedidos
      */
     @GetMapping
     public List<Pedido> listarPedidos() {
-        return pedidoService.obtenerPedidos();
+        return pedidoService.obtenerTodosLosPedidos();
     }
 }
