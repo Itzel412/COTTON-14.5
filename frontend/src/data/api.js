@@ -157,3 +157,44 @@ export async function createFactura(idPedido) {
 
   return ok;
 }
+const RECLAMOS_BASE_URL = 'http://localhost:8080/api/reclamos';
+
+export async function getReclamos() {
+  const response = await fetch(RECLAMOS_BASE_URL);
+  if (!response.ok) {
+    throw new Error('Error al obtener reclamos');
+  }
+  return await response.json();
+}
+
+export async function createReclamo(reclamo) {
+  const response = await fetch(RECLAMOS_BASE_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(reclamo),
+  });
+
+  if (!response.ok) {
+    const textoError = await response.text().catch(() => '');
+    throw new Error(textoError || 'Error HTTP al registrar reclamo');
+  }
+
+  const ok = await response.json();
+  return ok;
+}
+
+export async function updateReclamoEstado(id, nuevoEstado) {
+  const response = await fetch(`${RECLAMOS_BASE_URL}/${id}/estado`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(nuevoEstado), // "EN_PROCESO" o "CERRADO"
+  });
+
+  if (!response.ok) {
+    const textoError = await response.text().catch(() => '');
+    throw new Error(textoError || 'Error HTTP al actualizar estado de reclamo');
+  }
+
+  const ok = await response.json();
+  return ok;
+}
