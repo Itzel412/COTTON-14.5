@@ -1,6 +1,3 @@
-//itzel puso esto de ejemplo
-
-
 package com.franelas.cotton.inventario;
 import org.springframework.web.bind.annotation.*; // (1. Importa todas las anotaciones web)
 

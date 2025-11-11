@@ -6,8 +6,6 @@ import DashboardView from './views/DashboardView.vue';
 import PerfilView from './views/PerfilView.vue';
 import InventarioView from './views/InventarioView.vue';
 import PedidosView from './views/PedidosView.vue';
-// si luego usas facturas / reclamos, los importas aquí
-// import FacturasView from './views/FacturasView.vue';
 // import ReclamosView from './views/ReclamosView.vue';
 
 import HeaderBar from './components/HeaderBar.vue';
@@ -32,10 +30,8 @@ const handleOpenModule = (modulo) => {
 
 <template>
   <div id="app">
-    <!-- Si no hay usuario, mostrar login -->
     <LoginView v-if="!currentUser" @login-success="handleLoginSuccess" />
 
-    <!-- Si hay usuario logueado, mostrar panel -->
     <div v-else>
       <HeaderBar
         :currentUser="currentUser"
@@ -45,26 +41,22 @@ const handleOpenModule = (modulo) => {
       />
 
       <main class="app-main">
-        <!-- DASHBOARD -->
         <DashboardView
           v-if="currentModule === 'dashboard'"
           :currentUser="currentUser"
           @open-module="handleOpenModule"
         />
 
-        <!-- PERFIL -->
         <PerfilView
           v-else-if="currentModule === 'perfiles'"
           :currentUser="currentUser"
         />
 
-        <!-- CATÁLOGO / INVENTARIO -->
         <InventarioView
           v-else-if="currentModule === 'inventario'"
           :currentUser="currentUser"
         />
 
-        <!-- PEDIDOS -->
         <PedidosView
           v-else-if="currentModule === 'pedidos'"
           :currentUser="currentUser"

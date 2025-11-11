@@ -1,6 +1,6 @@
 <script setup>
-import { onMounted, ref, computed } from 'vue';
-import { getProductos, createPedido } from '../data/api';
+import { ref, computed, onMounted } from 'vue';
+import { getProductos, createProducto } from '../data/api';
 
 const props = defineProps({
   currentUser: {
@@ -9,300 +9,439 @@ const props = defineProps({
   },
 });
 
-const esAdmin = computed(
-  () => props.currentUser && props.currentUser.rol === 'ADMIN',
-);
+const esAdmin = computed(() => props.currentUser?.rol === 'ADMIN');
 
 const productos = ref([]);
 const loading = ref(false);
 const error = ref(null);
 
-// Para el formulario de pedido del usuario
-const productoSeleccionado = ref(null);
-const cantidad = ref(1);
-const mensajeOk = ref(null);
+// ya no mostramos mensaje fijo arriba, ahora usamos modal
+const mensajeProducto = ref(null);
+
+const modoAdmin = ref('ver');
+const pasoProducto = ref('form');
+const productoParaConfirmar = ref(null);
+
+const nuevoProducto = ref({
+  color: 'Blanco',
+  talla: 'M',
+  precio: 0,
+  stock: 0,
+});
+
+const COLORES = ['Blanco', 'Negro', 'Rojo', 'Azul', 'Amarillo', 'Verde', 'Morado'];
+const TALLAS = ['S', 'M', 'L', 'XL'];
+
+// -------- Modal de "warning" / OK ----------
+const dialogVisible = ref(false);
+const dialogMessage = ref('');
+
+const abrirDialogo = (msg) => {
+  dialogMessage.value = msg;
+  dialogVisible.value = true;
+};
+const cerrarDialogo = () => {
+  dialogVisible.value = false;
+};
+// -------------------------------------------
 
 const cargarProductos = async () => {
+  if (!esAdmin.value) return;
   loading.value = true;
   error.value = null;
+
   try {
     productos.value = await getProductos();
   } catch (e) {
-    error.value = e.message || 'Error al cargar productos';
+    error.value = e.message || 'Error al cargar los productos.';
   } finally {
     loading.value = false;
   }
 };
 
-const seleccionarProducto = (producto) => {
-  productoSeleccionado.value = producto;
-  cantidad.value = 1;
-  mensajeOk.value = null;
+const prepararConfirmacionProducto = () => {
   error.value = null;
+  mensajeProducto.value = null;
+
+  const p = nuevoProducto.value;
+  const faltantes = [];
+  if (!p.color) faltantes.push('Color');
+  if (!p.talla) faltantes.push('Talla');
+  if (p.precio <= 0) faltantes.push('Precio (> 0)');
+  if (p.stock < 0) faltantes.push('Stock (≥ 0)');
+
+  if (faltantes.length > 0) {
+    error.value = `Campo(s) inválido(s): ${faltantes.join(', ')}.`;
+    return;
+  }
+
+  if (!COLORES.includes(p.color)) {
+    error.value = 'Selecciona un color válido.';
+    return;
+  }
+
+  if (!TALLAS.includes(p.talla)) {
+    error.value = 'La talla debe ser S, M, L o XL.';
+    return;
+  }
+
+  productoParaConfirmar.value = { ...p };
+  pasoProducto.value = 'confirm';
 };
 
-const realizarPedido = async () => {
-  if (!productoSeleccionado.value) return;
-
-  // Validaciones de front (además de las del back)
-  if (cantidad.value < 1 || cantidad.value > 10) {
-    error.value = 'La cantidad debe estar entre 1 y 10.';
-    return;
-  }
-
-  if (cantidad.value > productoSeleccionado.value.stock) {
-    error.value = 'No hay suficiente stock para esa cantidad.';
-    return;
-  }
+const registrarProductoConfirmado = async () => {
+  if (!productoParaConfirmar.value) return;
 
   error.value = null;
-  mensajeOk.value = null;
-
-  const prod = productoSeleccionado.value;
-
-  // Usamos el correo como identificador del usuario
-  const usuario =
-    props.currentUser?.correo || props.currentUser?.nombre || 'desconocido';
-
-  const hoy = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
-
-  const nuevoPedido = {
-    id: 0, // el back lo genera
-    usuario,
-    idProducto: prod.id,
-    nombre: prod.nombre,
-    color: prod.color,
-    talla: prod.talla,
-    cantidad: cantidad.value,
-    precioUnitario: prod.precio,
-    total: 0, // el back lo calcula -> cantidad * precio
-    fecha: hoy,
-  };
-
   try {
-    await createPedido(nuevoPedido);
-    mensajeOk.value = 'Pedido registrado exitosamente.';
+    const ok = await createProducto({ ...productoParaConfirmar.value });
 
-    // Opcional: actualizar stock en pantalla
+    if (!ok) {
+      error.value = 'El backend no pudo registrar el producto.';
+      return;
+    }
+
+    // mostramos modal tipo "warning" con OK
+    abrirDialogo('Prenda registrada satisfactoriamente.');
+
+    // reseteamos el formulario
+    nuevoProducto.value = {
+      color: 'Blanco',
+      talla: 'M',
+      precio: 0,
+      stock: 0,
+    };
+    productoParaConfirmar.value = null;
+    pasoProducto.value = 'form';
+
     await cargarProductos();
-    // Volver a seleccionar el producto para mostrarlo actualizado (si sigue existiendo)
-    const actualizado = productos.value.find((p) => p.id === prod.id);
-    productoSeleccionado.value = actualizado || null;
   } catch (e) {
-    error.value = e.message || 'Error al registrar el pedido.';
+    error.value = e.message || 'Error al registrar el producto.';
   }
+};
+
+const cancelarConfirmacion = () => {
+  productoParaConfirmar.value = null;
+  pasoProducto.value = 'form';
+  // también usamos modal para el mensaje de cancelación
+  abrirDialogo('Se canceló el registro. No se guardaron cambios.');
 };
 
 onMounted(() => {
-  cargarProductos();
+  if (esAdmin.value) {
+    cargarProductos();
+  }
 });
 </script>
 
 <template>
-  <section>
-    <!-- ===== VISTA ADMIN: solo ver catálogo ===== -->
-    <div v-if="esAdmin">
-      <h2 style="margin-bottom: 0.5rem;">Catálogo de productos</h2>
-      <p style="margin-bottom: 1.5rem;">
-        Vista solo de lectura. Los pedidos se consultan en el módulo
-        <strong>Pedidos</strong>.
-      </p>
+  <section class="inventario-wrapper">
+    <div class="inventario-card" v-if="esAdmin">
+      <header class="inventario-header">
+        <h2>Gestión de inventario</h2>
+        <p>Registra nuevas franelas y consulta el inventario actual.</p>
+      </header>
 
-      <p v-if="loading">Cargando productos...</p>
-      <p v-if="error" style="color: #b12b3b;">{{ error }}</p>
-
-      <table
-        v-if="!loading && productos.length"
-        style="width: 100%; border-collapse: collapse; font-size: 0.9rem;"
-      >
-        <thead>
-          <tr>
-            <th style="border-bottom: 1px solid #ddd; padding: 0.5rem;">ID</th>
-            <th style="border-bottom: 1px solid #ddd; padding: 0.5rem;">
-              Nombre
-            </th>
-            <th style="border-bottom: 1px solid #ddd; padding: 0.5rem;">
-              Color
-            </th>
-            <th style="border-bottom: 1px solid #ddd; padding: 0.5rem;">
-              Talla
-            </th>
-            <th style="border-bottom: 1px solid #ddd; padding: 0.5rem;">
-              Precio
-            </th>
-            <th style="border-bottom: 1px solid #ddd; padding: 0.5rem;">
-              Stock
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="p in productos" :key="p.id">
-            <td style="padding: 0.5rem;">{{ p.id }}</td>
-            <td style="padding: 0.5rem;">{{ p.nombre }}</td>
-            <td style="padding: 0.5rem;">{{ p.color }}</td>
-            <td style="padding: 0.5rem;">{{ p.talla }}</td>
-            <td style="padding: 0.5rem;">{{ p.precio.toFixed(2) }} $</td>
-            <td style="padding: 0.5rem;">{{ p.stock }}</td>
-          </tr>
-        </tbody>
-      </table>
-
-      <p v-if="!loading && !productos.length">
-        No hay productos registrados en el inventario.
-      </p>
-    </div>
-
-    <!-- ===== VISTA USUARIO: catálogo + crear pedido ===== -->
-    <div v-else>
-      <h2 style="margin-bottom: 0.5rem;">Catálogo de franelas</h2>
-      <p style="margin-bottom: 1.5rem;">
-        Selecciona una franela y completa la cantidad para realizar tu pedido.
-      </p>
-
-      <p v-if="loading">Cargando productos...</p>
-      <p v-if="error" style="color: #b12b3b;">{{ error }}</p>
-
-      <div class="catalog-grid" v-if="!loading && productos.length">
-        <div
-          v-for="p in productos"
-          :key="p.id"
-          class="product-card"
-          @click="seleccionarProducto(p)"
-          :class="{
-            selected: productoSeleccionado && productoSeleccionado.id === p.id,
-          }"
-        >
-          <!-- Aquí podrías usar tus imágenes reales por color si quieres -->
-          <!-- Ejemplo: <img :src="`/img/${p.color.toLowerCase()}.png`" class="product-image-real" /> -->
-          <div class="product-image">
-            {{ p.color.charAt(0) }}
-          </div>
-          <h3>{{ p.nombre }}</h3>
-          <p class="product-variant">
-            Color: {{ p.color }} · Talla: {{ p.talla }}
-          </p>
-          <p class="product-price">{{ p.precio.toFixed(2) }} $</p>
-          <p class="product-stock">
-            Stock: <strong>{{ p.stock }}</strong>
-          </p>
-        </div>
+      <div v-if="error" class="inv-alert error">
+        {{ error }}
       </div>
 
-      <p v-if="!loading && !productos.length">
-        No hay productos disponibles en este momento.
-      </p>
-
-      <!-- FORMULARIO DE PEDIDO -->
-      <div v-if="productoSeleccionado" class="pedido-panel">
-        <h3>Realizar pedido</h3>
-        <p style="font-size: 0.9rem; margin-bottom: 0.5rem;">
-          Producto seleccionado:
-          <strong>{{ productoSeleccionado.nombre }}</strong>
-          ({{ productoSeleccionado.color }} - {{ productoSeleccionado.talla }})
-        </p>
-
-        <div class="form-group">
-          <label>Cantidad (máx. 10)</label>
-          <input
-            type="number"
-            min="1"
-            max="10"
-            v-model.number="cantidad"
-          />
-          <small style="font-size: 0.8rem; color: #555;">
-            Stock disponible: {{ productoSeleccionado.stock }}
-          </small>
-        </div>
-
-        <p style="margin-bottom: 0.75rem; font-size: 0.9rem;">
-          Precio unitario:
-          <strong>{{ productoSeleccionado.precio.toFixed(2) }} $</strong>
-          <br />
-          Total aproximado:
-          <strong>{{
-            (cantidad * productoSeleccionado.precio).toFixed(2)
-          }} $</strong>
-        </p>
-
-        <button class="btn-ambos" @click="realizarPedido">
-          Confirmar pedido
+      <div class="inv-tabs">
+        <button
+          type="button"
+          class="inv-tab-btn"
+          :class="{ active: modoAdmin === 'ver' }"
+          @click="modoAdmin = 'ver'"
+        >
+          Ver productos
         </button>
+        <button
+          type="button"
+          class="inv-tab-btn"
+          :class="{ active: modoAdmin === 'crear' }"
+          @click="modoAdmin = 'crear'"
+        >
+          Registrar producto
+        </button>
+      </div>
 
-        <div v-if="mensajeOk" style="margin-top: 0.75rem; color: #1b7965;">
-          {{ mensajeOk }}
+      <!-- VER PRODUCTOS -->
+      <div v-if="modoAdmin === 'ver'" class="inv-panel">
+        <h3 class="panel-title">Productos en inventario</h3>
+
+        <p v-if="loading">Cargando productos...</p>
+
+        <table
+          v-else-if="productos.length"
+          class="inv-table"
+        >
+          <thead>
+            <tr>
+              <th>Color</th>
+              <th>Talla</th>
+              <th>Precio</th>
+              <th>Stock</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="p in productos" :key="p.id">
+              <td>{{ p.color }}</td>
+              <td>{{ p.talla }}</td>
+              <td>{{ Number(p.precio).toFixed(2) }} $</td>
+              <td>{{ p.stock }}</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <p
+          v-else
+          style="color: #1b1b1b; font-weight: 500; text-align: center; margin-top: 1rem;"
+        >
+          No hay productos registrados en el inventario.
+        </p>
+      </div>
+
+      <!-- REGISTRAR PRODUCTO -->
+      <div v-else class="inv-panel">
+        <h3 class="panel-title">Registrar nuevo producto</h3>
+
+        <div v-if="pasoProducto === 'form'">
+          <form @submit.prevent="prepararConfirmacionProducto">
+            <div class="form-row">
+              <div class="form-group">
+                <label>Color</label>
+                <select v-model="nuevoProducto.color">
+                  <option v-for="c in COLORES" :key="c" :value="c">
+                    {{ c }}
+                  </option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label>Talla</label>
+                <select v-model="nuevoProducto.talla">
+                  <option v-for="t in TALLAS" :key="t" :value="t">
+                    {{ t }}
+                  </option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label>Precio (USD)</label>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  v-model.number="nuevoProducto.precio"
+                />
+              </div>
+
+              <div class="form-group">
+                <label>Stock</label>
+                <input
+                  type="number"
+                  min="0"
+                  v-model.number="nuevoProducto.stock"
+                />
+              </div>
+            </div>
+
+            <button type="submit" class="btn-ambos">
+              Validar y continuar
+            </button>
+          </form>
         </div>
-        <div v-if="error" style="margin-top: 0.75rem; color: #b12b3b;">
-          {{ error }}
+
+        <!-- BLOQUE DE CONFIRMACIÓN (texto ya oscuro) -->
+        <div v-else class="confirm-block">
+          <h4>Confirmar datos de la prenda</h4>
+          <p><strong>Color:</strong> {{ productoParaConfirmar.color }}</p>
+          <p><strong>Talla:</strong> {{ productoParaConfirmar.talla }}</p>
+          <p><strong>Precio:</strong> {{ productoParaConfirmar.precio }} $</p>
+          <p><strong>Stock:</strong> {{ productoParaConfirmar.stock }}</p>
+
+          <div class="confirm-buttons">
+            <button class="btn-ambos" @click="registrarProductoConfirmado">
+              Confirmar y registrar
+            </button>
+            <button
+              class="btn-ambos btn-secondary"
+              @click="cancelarConfirmacion"
+            >
+              Cancelar
+            </button>
+          </div>
         </div>
+      </div>
+    </div>
+
+    <!-- MODAL DE MENSAJE -->
+    <div v-if="dialogVisible" class="inv-dialog-backdrop">
+      <div class="inv-dialog">
+        <p>{{ dialogMessage }}</p>
+        <button class="btn-ambos" @click="cerrarDialogo">
+          OK
+        </button>
       </div>
     </div>
   </section>
 </template>
 
 <style scoped>
-.catalog-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 1.5rem;
-  margin-bottom: 2rem;
-}
-
-.product-card {
-  background: #ffffff;
-  border-radius: 16px;
-  padding: 1rem;
-  border: 1px solid #dddddd;
-  cursor: pointer;
-  transition: transform 0.15s ease, box-shadow 0.15s ease,
-    border-color 0.15s ease;
-}
-
-.product-card:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
-  border-color: var(--cotton-soft, #e9cba7);
-}
-
-.product-card.selected {
-  border-color: var(--cotton-accent, #e18b6b);
-  box-shadow: 0 0 0 2px rgba(225, 139, 107, 0.2);
-}
-
-.product-image {
-  width: 60px;
-  height: 60px;
-  border-radius: 999px;
-  background: #f0f0f0;
-  margin-bottom: 0.75rem;
+.inventario-wrapper {
+  padding: 2.5rem 1rem 3rem;
   display: flex;
-  align-items: center;
   justify-content: center;
-  font-weight: 700;
-  color: #333;
 }
 
-.product-variant {
-  font-size: 0.85rem;
+.inventario-card {
+  background: var(--cotton-light, #fcf5e9);
+  border-radius: 20px;
+  padding: 2rem 1.75rem;
+  max-width: 1000px;
+  width: 100%;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18);
+}
+
+.inventario-header {
+  margin-bottom: 1.5rem;
+}
+
+.inventario-header h2 {
+  font-size: 1.6rem;
+  margin-bottom: 0.3rem;
+  color: var(--cotton-dark, #1c262e);
+}
+
+.inventario-header p {
   color: #555;
-}
-
-.product-price {
   font-size: 0.95rem;
+}
+
+.inv-alert {
+  padding: 0.6rem 0.8rem;
+  border-radius: 10px;
+  font-size: 0.9rem;
+  margin-bottom: 0.8rem;
+}
+.inv-alert.error {
+  background: #f8d7da;
+  color: #842029;
+}
+
+.inv-tabs {
+  display: inline-flex;
+  gap: 0.5rem;
+  border-radius: 999px;
+  background: #e6e6e6;
+  padding: 0.2rem;
+  margin-bottom: 1.5rem;
+}
+.inv-tab-btn {
+  border: none;
+  background: transparent;
+  padding: 0.5rem 1rem;
+  border-radius: 999px;
+  cursor: pointer;
+  font-size: 0.9rem;
   font-weight: 600;
-  margin-top: 0.4rem;
+  color: #555;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.inv-tab-btn.active {
+  background: #ffffff;
+  color: var(--cotton-dark, #1c262e);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
 }
 
-.product-stock {
-  font-size: 0.8rem;
-  color: #777;
-  margin-top: 0.2rem;
-}
-
-.pedido-panel {
+.inv-panel {
   background: #ffffff;
   border-radius: 16px;
   padding: 1.5rem;
   border: 1px solid #dddddd;
-  max-width: 450px;
+}
+.panel-title {
+  font-size: 1.1rem;
+  margin-bottom: 0.75rem;
+  color: var(--cotton-dark, #1c262e);
+}
+
+.form-row {
+  display: flex;
+  gap: 1rem;
+}
+
+/* tabla */
+.inv-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+  margin-bottom: 1rem;
+  background: #ffffff;
+  border-radius: 12px;
+  overflow: hidden;
+}
+.inv-table thead {
+  background: #f0f0f0;
+}
+.inv-table th,
+.inv-table td {
+  padding: 0.55rem 0.6rem;
+  border-bottom: 1px solid #e4e4e4;
+  text-align: left;
+}
+.inv-table th {
+  color: #1c262e;
+  font-weight: 600;
+}
+.inv-table td {
+  color: #333333;
+}
+
+/* bloque de confirmación */
+.confirm-block {
+  color: #1c262e;
+}
+.confirm-block h4 {
+  margin-bottom: 0.75rem;
+}
+.confirm-block p,
+.confirm-block strong {
+  color: #1c262e;
+}
+.confirm-buttons {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+.btn-secondary {
+  background: #6c757d;
+  box-shadow: none;
+}
+
+/* modal */
+.inv-dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+.inv-dialog {
+  background: #ffffff;
+  padding: 1.5rem 1.75rem;
+  border-radius: 16px;
+  max-width: 400px;
+  width: 90%;
+  text-align: center;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+}
+.inv-dialog p {
+  margin-bottom: 1rem;
+  color: #1c262e;
 }
 </style>

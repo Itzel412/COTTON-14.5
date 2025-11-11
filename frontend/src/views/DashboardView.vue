@@ -47,40 +47,35 @@ const abrirModulo = (modulo) => {
       />
 
       <ModuleCard
-        title="Catálogo"
-        description="Revisar y actualizar el inventario de franelas."
+        title="Inventario"
+        description="Registra y consulta los productos disponibles."
         @click="abrirModulo('inventario')"
       />
 
       <ModuleCard
         title="Pedidos"
-        description="Consultar y gestionar los pedidos realizados."
+        description="Consultar los pedidos realizados."
         @click="abrirModulo('pedidos')"
       />
 
       <ModuleCard
         title="Facturación"
-        description="Ver y emitir facturas con montos e impuestos."
+        description="Crea y consulta las facturas."
         @click="abrirModulo('facturas')"
       />
 
       <ModuleCard
         title="Reclamos"
-        description="Registrar y dar seguimiento a reclamos de clientes."
+        description="Modifica los reclamos de los clientes."
         @click="abrirModulo('reclamos')"
       />
     </div>
 
     <div v-else class="dashboard-grid">
-      <ModuleCard
-        title="Ver catálogo"
-        description="Explora todas las franelas disponibles para comprar."
-        @click="abrirModulo('inventario')"
-      />
 
       <ModuleCard
-        title="Mis pedidos"
-        description="Consulta el estado y el historial de tus pedidos."
+        title="Catalogo"
+        description="Revisa los articulos disponibles en la tienda, realiza tu pedido."
         @click="abrirModulo('pedidos')"
       />
 
@@ -91,7 +86,7 @@ const abrirModulo = (modulo) => {
       />
 
       <ModuleCard
-        title="Ayuda y reclamos"
+        title="Reclamos"
         description="Reporta problemas o dudas sobre tus compras."
         @click="abrirModulo('reclamos')"
       />

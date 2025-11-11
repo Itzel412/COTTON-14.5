@@ -1,24 +1,18 @@
 [
   {
-    "id": 1,
-    "nombre": "Franela Unicolor Básica",
     "color": "Negro",
     "talla": "M",
     "precio": 10.50,
     "stock": 50
   },
   {
-    "id": 2,
-    "nombre": "Franela Unicolor Básica",
     "color": "Blanco",
     "talla": "L",
     "precio": 10.50,
     "stock": 40
   },
   {
-    "id": 3,
-    "nombre": "Franela Premium",
-    "color": "Azul Marino",
+    "color": "Azul",
     "talla": "M",
     "precio": 15.00,
     "stock": 25
