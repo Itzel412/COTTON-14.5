@@ -6,6 +6,7 @@ import DashboardView from './views/DashboardView.vue';
 import PerfilView from './views/PerfilView.vue';
 import InventarioView from './views/InventarioView.vue';
 import PedidosView from './views/PedidosView.vue';
+import FacturasView from './views/FacturasView.vue';
 
 import HeaderBar from './components/HeaderBar.vue';
 
@@ -58,6 +59,11 @@ const handleOpenModule = (modulo) => {
 
         <PedidosView
           v-else-if="currentModule === 'pedidos'"
+          :currentUser="currentUser"
+        />
+
+        <FacturasView
+          v-else-if="currentModule === 'facturas'"
           :currentUser="currentUser"
         />
       </main>

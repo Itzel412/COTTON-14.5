@@ -6,7 +6,6 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/facturas")
-@CrossOrigin(origins = "http://localhost:5173")
 public class FacturaController {
 
     private final FacturaService facturaService;
@@ -14,14 +13,14 @@ public class FacturaController {
     public FacturaController(FacturaService facturaService) {
         this.facturaService = facturaService;
     }
-
-    @PostMapping("/crear")
-    public boolean crearFactura(@RequestBody Factura nuevaFactura) {
-        return facturaService.registrarFactura(nuevaFactura);
+    
+    @GetMapping
+    public List<Factura> listarFacturas() {
+        return facturaService.obtenerTodasLasFacturas();
     }
 
-    @GetMapping("/todas")
-    public List<Factura> listarFacturas() {
-        return facturaService.obtenerFacturas();
+    @PostMapping
+    public boolean crearFactura(@RequestBody Factura factura) {
+        return facturaService.registrarFactura(factura);
     }
 }

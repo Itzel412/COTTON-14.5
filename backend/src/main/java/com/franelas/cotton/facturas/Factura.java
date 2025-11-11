@@ -1,56 +1,134 @@
 package com.franelas.cotton.facturas;
 
-import java.util.UUID;
-
 public class Factura {
-    private String id;
-    private String usuario;
-    private String pedidoId;
+
+    private long id;
+    private long idPedido;
+    private String clienteCorreo;
+
+    private String color;
+    private String talla;
+    private int cantidad;
+    private double precioUnitario;
+
     private double subtotal;
-    private double impuestos;
+    private double iva;
     private double total;
-    private String fecha;
-    private String estado;
 
-    public Factura() {}
+    private String fechaEmision; // formato YYYY-MM-DD
 
-    public Factura(String usuario, String pedidoId, double subtotal, double impuestos, String fecha, String estado) {
-        this.id = UUID.randomUUID().toString();
-        this.usuario = usuario;
-        this.pedidoId = pedidoId;
-        this.subtotal = subtotal;
-        this.impuestos = impuestos;
-        this.total = subtotal + impuestos;
-        this.fecha = fecha;
-        this.estado = estado;
+    public Factura() {
     }
 
-    public String getId() { return id; }
-    public void setId(String id) { this.id = id; }
+    public Factura(long id,
+                   long idPedido,
+                   String clienteCorreo,
+                   String color,
+                   String talla,
+                   int cantidad,
+                   double precioUnitario,
+                   double subtotal,
+                   double iva,
+                   double total,
+                   String fechaEmision) {
+        this.id = id;
+        this.idPedido = idPedido;
+        this.clienteCorreo = clienteCorreo;
+        this.color = color;
+        this.talla = talla;
+        this.cantidad = cantidad;
+        this.precioUnitario = precioUnitario;
+        this.subtotal = subtotal;
+        this.iva = iva;
+        this.total = total;
+        this.fechaEmision = fechaEmision;
+    }
 
-    public String getUsuario() { return usuario; }
-    public void setUsuario(String usuario) { this.usuario = usuario; }
+    public long getId() {
+        return id;
+    }
 
-    public String getPedidoId() { return pedidoId; }
-    public void setPedidoId(String pedidoId) { this.pedidoId = pedidoId; }
+    public void setId(long id) {
+        this.id = id;
+    }
 
-    public double getSubtotal() { return subtotal; }
+    public long getIdPedido() {
+        return idPedido;
+    }
+
+    public void setIdPedido(long idPedido) {
+        this.idPedido = idPedido;
+    }
+
+    public String getClienteCorreo() {
+        return clienteCorreo;
+    }
+
+    public void setClienteCorreo(String clienteCorreo) {
+        this.clienteCorreo = clienteCorreo;
+    }
+
+    public String getColor() {
+        return color;
+    }
+
+    public void setColor(String color) {
+        this.color = color;
+    }
+
+    public String getTalla() {
+        return talla;
+    }
+
+    public void setTalla(String talla) {
+        this.talla = talla;
+    }
+
+    public int getCantidad() {
+        return cantidad;
+    }
+
+    public void setCantidad(int cantidad) {
+        this.cantidad = cantidad;
+    }
+
+    public double getPrecioUnitario() {
+        return precioUnitario;
+    }
+
+    public void setPrecioUnitario(double precioUnitario) {
+        this.precioUnitario = precioUnitario;
+    }
+
+    public double getSubtotal() {
+        return subtotal;
+    }
+
     public void setSubtotal(double subtotal) {
         this.subtotal = subtotal;
-        this.total = this.subtotal + this.impuestos;
     }
 
-    public double getImpuestos() { return impuestos; }
-    public void setImpuestos(double impuestos) {
-        this.impuestos = impuestos;
-        this.total = this.subtotal + this.impuestos;
+    public double getIva() {
+        return iva;
     }
 
-    public double getTotal() { return total; }
+    public void setIva(double iva) {
+        this.iva = iva;
+    }
 
-    public String getFecha() { return fecha; }
-    public void setFecha(String fecha) { this.fecha = fecha; }
+    public double getTotal() {
+        return total;
+    }
 
-    public String getEstado() { return estado; }
-    public void setEstado(String estado) { this.estado = estado; }
+    public void setTotal(double total) {
+        this.total = total;
+    }
+
+    public String getFechaEmision() {
+        return fechaEmision;
+    }
+
+    public void setFechaEmision(String fechaEmision) {
+        this.fechaEmision = fechaEmision;
+    }
 }

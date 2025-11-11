@@ -1,0 +1,13 @@
+[ {
+  "id" : 1,
+  "idPedido" : 1,
+  "clienteCorreo" : "canino1@correo.com",
+  "color" : "Negro",
+  "talla" : "M",
+  "cantidad" : 4,
+  "precioUnitario" : 10.5,
+  "subtotal" : 42.0,
+  "iva" : 6.72,
+  "total" : 48.72,
+  "fechaEmision" : "2025-11-11"
+} ]

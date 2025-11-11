@@ -33,22 +33,12 @@ export async function createPerfil(nuevoPerfil) {
     body: JSON.stringify(nuevoPerfil),
   });
 
-  const texto = await response.text().catch(() => '');
-
   if (!response.ok) {
-    throw new Error(texto || 'Error HTTP al registrar perfil');
+    const textoError = await response.text().catch(() => '');
+    throw new Error(textoError || 'Error HTTP al registrar perfil');
   }
 
-  let ok = true;
-  try {
-    ok = JSON.parse(texto); 
-  } catch {
-    ok = true;
-  }
-
-  if (ok === false) {
-    throw new Error('El backend no pudo registrar el perfil');
-  }
+  await response.json();
   return await getPerfiles();
 }
 
@@ -68,28 +58,16 @@ export async function registerClientePerfil(datos) {
     body: JSON.stringify(payload),
   });
 
-  const texto = await response.text().catch(() => '');
-
   if (!response.ok) {
-    throw new Error(texto || 'Error HTTP al registrar cliente');
+    const textoError = await response.text().catch(() => '');
+    throw new Error(textoError || 'Error HTTP al registrar cliente');
   }
 
-  let ok = true;
-  try {
-    ok = JSON.parse(texto);
-  } catch {
-    ok = true;
-  }
-
-  if (ok === false) {
-    throw new Error('El backend no pudo registrar el cliente');
-  }
-
+  await response.json();
   return await loginRequest(payload.correo, payload.clave);
 }
 
 const INVENTARIO_BASE_URL = 'http://localhost:8080/api/inventario';
-const PEDIDOS_BASE_URL = 'http://localhost:8080/api/pedidos';
 
 export async function getProductos() {
   const response = await fetch(`${INVENTARIO_BASE_URL}/productos`);
@@ -106,25 +84,21 @@ export async function createProducto(producto) {
     body: JSON.stringify(producto),
   });
 
-  const texto = await response.text().catch(() => '');
-
   if (!response.ok) {
-    throw new Error(texto || 'Error HTTP al registrar el producto');
+    const textoError = await response.text().catch(() => '');
+    throw new Error(textoError || 'Error HTTP al registrar el producto');
   }
 
-  let ok = true;
-  try {
-    ok = JSON.parse(texto);
-  } catch {
-    ok = true;
-  }
-
-  if (ok === false) {
+  const ok = await response.json();
+  if (!ok) {
     throw new Error('El backend no pudo registrar el producto');
   }
 
   return ok;
 }
+
+const PEDIDOS_BASE_URL = 'http://localhost:8080/api/pedidos';
+
 export async function createPedido(pedido) {
   const response = await fetch(PEDIDOS_BASE_URL, {
     method: 'POST',
@@ -132,20 +106,13 @@ export async function createPedido(pedido) {
     body: JSON.stringify(pedido),
   });
 
-  const texto = await response.text().catch(() => '');
-
   if (!response.ok) {
-    throw new Error(texto || 'Error HTTP al registrar el pedido');
+    const textoError = await response.text().catch(() => '');
+    throw new Error(textoError || 'Error HTTP al registrar el pedido');
   }
 
-  let ok = true;
-  try {
-    ok = JSON.parse(texto);
-  } catch {
-    ok = true;
-  }
-
-  if (ok === false) {
+  const ok = await response.json();
+  if (!ok) {
     throw new Error('El backend no pudo registrar el pedido');
   }
 
@@ -158,4 +125,35 @@ export async function getPedidos() {
     throw new Error('Error al obtener pedidos');
   }
   return await response.json();
+}
+
+const FACTURAS_BASE_URL = 'http://localhost:8080/api/facturas';
+
+export async function getFacturas() {
+  const response = await fetch(FACTURAS_BASE_URL);
+  if (!response.ok) {
+    throw new Error('Error al obtener facturas');
+  }
+  return await response.json();
+}
+export async function createFactura(idPedido) {
+  const payload = { idPedido };
+
+  const response = await fetch(FACTURAS_BASE_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    const textoError = await response.text().catch(() => '');
+    throw new Error(textoError || 'Error HTTP al registrar la factura');
+  }
+
+  const ok = await response.json();
+  if (!ok) {
+    throw new Error('El backend no pudo registrar la factura');
+  }
+
+  return ok;
 }
