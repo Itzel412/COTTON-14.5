@@ -33,15 +33,22 @@ export async function createPerfil(nuevoPerfil) {
     body: JSON.stringify(nuevoPerfil),
   });
 
+  const texto = await response.text().catch(() => '');
+
   if (!response.ok) {
-    throw new Error('Error HTTP al registrar perfil');
+    throw new Error(texto || 'Error HTTP al registrar perfil');
   }
 
-  const ok = await response.json();
-  if (!ok) {
+  let ok = true;
+  try {
+    ok = JSON.parse(texto); 
+  } catch {
+    ok = true;
+  }
+
+  if (ok === false) {
     throw new Error('El backend no pudo registrar el perfil');
   }
-
   return await getPerfiles();
 }
 
@@ -61,12 +68,20 @@ export async function registerClientePerfil(datos) {
     body: JSON.stringify(payload),
   });
 
+  const texto = await response.text().catch(() => '');
+
   if (!response.ok) {
-    throw new Error('Error HTTP al registrar cliente');
+    throw new Error(texto || 'Error HTTP al registrar cliente');
   }
 
-  const ok = await response.json();
-  if (!ok) {
+  let ok = true;
+  try {
+    ok = JSON.parse(texto);
+  } catch {
+    ok = true;
+  }
+
+  if (ok === false) {
     throw new Error('El backend no pudo registrar el cliente');
   }
 
@@ -91,18 +106,25 @@ export async function createProducto(producto) {
     body: JSON.stringify(producto),
   });
 
+  const texto = await response.text().catch(() => '');
+
   if (!response.ok) {
-    throw new Error('Error HTTP al registrar el producto');
+    throw new Error(texto || 'Error HTTP al registrar el producto');
   }
 
-  const ok = await response.json();
-  if (!ok) {
+  let ok = true;
+  try {
+    ok = JSON.parse(texto);
+  } catch {
+    ok = true;
+  }
+
+  if (ok === false) {
     throw new Error('El backend no pudo registrar el producto');
   }
 
   return ok;
 }
-
 export async function createPedido(pedido) {
   const response = await fetch(PEDIDOS_BASE_URL, {
     method: 'POST',
@@ -110,12 +132,20 @@ export async function createPedido(pedido) {
     body: JSON.stringify(pedido),
   });
 
+  const texto = await response.text().catch(() => '');
+
   if (!response.ok) {
-    throw new Error('Error HTTP al registrar el pedido');
+    throw new Error(texto || 'Error HTTP al registrar el pedido');
   }
 
-  const ok = await response.json();
-  if (!ok) {
+  let ok = true;
+  try {
+    ok = JSON.parse(texto);
+  } catch {
+    ok = true;
+  }
+
+  if (ok === false) {
     throw new Error('El backend no pudo registrar el pedido');
   }
 

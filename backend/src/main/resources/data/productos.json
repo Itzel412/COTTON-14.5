@@ -1,20 +1,29 @@
-[
-  {
-    "color": "Negro",
-    "talla": "M",
-    "precio": 10.50,
-    "stock": 50
-  },
-  {
-    "color": "Blanco",
-    "talla": "L",
-    "precio": 10.50,
-    "stock": 40
-  },
-  {
-    "color": "Azul",
-    "talla": "M",
-    "precio": 15.00,
-    "stock": 25
-  }
-]
+[ {
+  "id" : 0,
+  "nombre" : null,
+  "color" : "Negro",
+  "talla" : "M",
+  "precio" : 10.5,
+  "stock" : 31
+}, {
+  "id" : 0,
+  "nombre" : null,
+  "color" : "Blanco",
+  "talla" : "L",
+  "precio" : 10.5,
+  "stock" : 40
+}, {
+  "id" : 0,
+  "nombre" : null,
+  "color" : "Azul",
+  "talla" : "M",
+  "precio" : 15.0,
+  "stock" : 25
+}, {
+  "id" : 0,
+  "nombre" : null,
+  "color" : "Rojo",
+  "talla" : "S",
+  "precio" : 12.4,
+  "stock" : 4
+} ]

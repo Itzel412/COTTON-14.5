@@ -8,7 +8,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/perfil")
-@CrossOrigin(origins = "http://localhost:5173")   // 👈 permite llamadas desde el front
+@CrossOrigin(origins = "http://localhost:5173")
 public class PerfilController {
 
     private final PerfilService perfilService;
@@ -33,7 +33,6 @@ public class PerfilController {
         return ResponseEntity.ok(true);
     }
 
-    // ====== NUEVO: LOGIN ======
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginRequest request) {
         Perfil perfil = perfilService.buscarPorCorreoYClave(
@@ -47,7 +46,6 @@ public class PerfilController {
                     .body("Correo o clave incorrectos");
         }
 
-        // Por seguridad, no devolvemos la clave
         perfil.setClave(null);
 
         return ResponseEntity.ok(perfil);

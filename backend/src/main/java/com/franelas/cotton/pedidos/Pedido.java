@@ -3,20 +3,20 @@ package com.franelas.cotton.pedidos;
 public class Pedido {
     private long id;
     private String usuario;
-    private long idProducto;     // referencia al producto del inventario
-    private String nombre;       // nombre del producto
-    private String color;        // color del producto
-    private String talla;        // talla (S, M, L, XL)
-    private int cantidad;        // cantidad pedida
+    private long idProducto;
+    private String nombre;
+    private String color;
+    private String talla;
+    private int cantidad;
     private double precioUnitario;
     private double total;
-    private String fecha;        // fecha del pedido
+    private String fecha;
 
-    // Constructor vacío (Jackson lo necesita)
     public Pedido() {}
 
-    // Constructor completo (opcional, para pruebas o creación manual)
-    public Pedido(long id, String usuario, long idProducto, String nombre, String color, String talla, int cantidad, double precioUnitario, String fecha) {
+    public Pedido(long id, String usuario, long idProducto, String nombre,
+                  String color, String talla, int cantidad,
+                  double precioUnitario, String fecha) {
         this.id = id;
         this.usuario = usuario;
         this.idProducto = idProducto;
@@ -29,7 +29,6 @@ public class Pedido {
         this.fecha = fecha;
     }
 
-    // --- Getters y Setters ---
     public long getId() { return id; }
     public void setId(long id) { this.id = id; }
 

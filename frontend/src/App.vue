@@ -6,7 +6,6 @@ import DashboardView from './views/DashboardView.vue';
 import PerfilView from './views/PerfilView.vue';
 import InventarioView from './views/InventarioView.vue';
 import PedidosView from './views/PedidosView.vue';
-// import ReclamosView from './views/ReclamosView.vue';
 
 import HeaderBar from './components/HeaderBar.vue';
 
@@ -61,18 +60,6 @@ const handleOpenModule = (modulo) => {
           v-else-if="currentModule === 'pedidos'"
           :currentUser="currentUser"
         />
-
-        <!-- Si luego agregas estos, solo quitas los comentarios -->
-        <!--
-        <FacturasView
-          v-else-if="currentModule === 'facturas'"
-          :currentUser="currentUser"
-        />
-        <ReclamosView
-          v-else-if="currentModule === 'reclamos'"
-          :currentUser="currentUser"
-        />
-        -->
       </main>
     </div>
   </div>
