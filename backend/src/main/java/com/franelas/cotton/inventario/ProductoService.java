@@ -5,28 +5,22 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.stereotype.Service;
 
 import java.io.File;
-// import java.io.InputStream; // <-- Ya no lo necesitamos
-import java.util.ArrayList; // <-- Importado para la lista
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
 @Service
 public class ProductoService {
 
-    // Esta ruta es correcta para new File() desde la raíz del proyecto
     private final String RUTA_JSON = "backend/backend/src/main/resources/data/productos.json";
 
-    /**
-     * HISTORIA DE USUARIO: "Consultar Productos"
-     * (¡AHORA CORREGIDO!) Usa new File() para ser consistente con el método de escritura.
-     */
+    private final ObjectMapper mapper = new ObjectMapper();
+
     public List<Producto> obtenerTodosLosProductos() {
 
-        ObjectMapper mapper = new ObjectMapper();
         TypeReference<List<Producto>> typeReference = new TypeReference<List<Producto>>() {};
 
         try {
-            // (¡CAMBIO!) Usamos File, igual que en el método de registrar
             File jsonFile = new File(RUTA_JSON);
 
             if (!jsonFile.exists() || jsonFile.length() == 0) {
@@ -34,24 +28,16 @@ public class ProductoService {
                 return Collections.emptyList();
             }
 
-            // (¡CAMBIO!) Leemos directamente del archivo
-            List<Producto> productos = mapper.readValue(jsonFile, typeReference);
-            return productos;
+            return mapper.readValue(jsonFile, typeReference);
 
         } catch (Exception e) {
-            System.err.println("Error al leer el archivo JSON: " + e.getMessage());
+            System.err.println("Error al leer el archivo JSON de productos: " + e.getMessage());
             e.printStackTrace();
             return Collections.emptyList();
         }
     }
 
-    /**
-     * HISTORIA DE USUARIO: "Registrar Producto"
-     * (Esta lógica ya era correcta)
-     */
     public boolean registrarProducto(Producto nuevoProducto) {
-
-        ObjectMapper mapper = new ObjectMapper();
 
         try {
             File jsonFile = new File(RUTA_JSON);
@@ -61,23 +47,39 @@ public class ProductoService {
                 TypeReference<List<Producto>> typeReference = new TypeReference<List<Producto>>() {};
                 productos = mapper.readValue(jsonFile, typeReference);
             } else {
-                productos = new ArrayList<>(); // Usamos ArrayList
-                System.err.println("Error al leer el archivo " + RUTA_JSON);
+                productos = new ArrayList<>();
+                System.err.println("Archivo de productos no encontrado o vacío, creando lista nueva: " + RUTA_JSON);
             }
 
             if (nuevoProducto.getId() == 0) {
-                long nextId = productos.stream().mapToLong(Producto::getId).max().orElse(0) + 1;
+                long nextId = productos.stream()
+                        .mapToLong(Producto::getId)
+                        .max()
+                        .orElse(0) + 1;
                 nuevoProducto.setId(nextId);
             }
 
             productos.add(nuevoProducto);
             mapper.writerWithDefaultPrettyPrinter().writeValue(jsonFile, productos);
 
-            System.out.println("Producto" + nuevoProducto.getNombre() + " registrado exitosamente");
+            System.out.println("Producto " + nuevoProducto.getNombre() + " registrado exitosamente");
             return true;
 
         } catch (Exception e) {
-            System.err.println("Error al leer el archivo " + e.getMessage());
+            System.err.println("Error al registrar producto: " + e.getMessage());
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    public boolean guardarProductos(List<Producto> productosActualizados) {
+        try {
+            File jsonFile = new File(RUTA_JSON);
+            mapper.writerWithDefaultPrettyPrinter().writeValue(jsonFile, productosActualizados);
+            System.out.println("Inventario actualizado correctamente.");
+            return true;
+        } catch (Exception e) {
+            System.err.println("Error al actualizar el archivo de productos: " + e.getMessage());
             e.printStackTrace();
             return false;
         }

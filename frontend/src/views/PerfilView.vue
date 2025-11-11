@@ -21,6 +21,19 @@ const error = ref(null);
 const mensajeCrear = ref(null);
 const perfilSeleccionado = ref(null);
 
+const pasoCrear = ref('form'); 
+
+const nuevoPerfil = ref({
+  nombre: '',
+  correo: '',
+  clave: '',
+  direccion: '',
+  telefono: '',
+  rol: 'CLIENTE',
+});
+
+const perfilParaConfirmar = ref(null);
+
 const cargarPerfiles = async () => {
   if (!esAdmin.value) return;
   loading.value = true;
@@ -37,19 +50,6 @@ const cargarPerfiles = async () => {
 const seleccionarPerfil = (perfil) => {
   perfilSeleccionado.value = perfil;
 };
-
-const pasoCrear = ref('form');
-
-const nuevoPerfil = ref({
-  nombre: '',
-  correo: '',
-  clave: '',
-  direccion: '',
-  telefono: '',
-  rol: 'CLIENTE',
-});
-
-const perfilParaConfirmar = ref(null);
 
 const validarYPrepararConfirmacion = async () => {
   mensajeCrear.value = null;
@@ -123,227 +123,318 @@ onMounted(() => {
 </script>
 
 <template>
-  <section>
-    <template v-if="esAdmin">
-      <h2 style="margin-bottom: 0.5rem;">Gestión de Perfiles (Admin)</h2>
-      <p style="margin-bottom: 1rem;">
-        El administrador puede crear perfiles y consultar todos los usuarios.
-      </p>
+  <section class="perfil-wrapper">
+    <div v-if="esAdmin" class="perfil-card">
+      <header class="perfil-header">
+        <h2>Perfiles</h2>
+        <p>Aqui puedes crear o cunsultar los perfiles de los usuarios.</p>
+      </header>
 
-      <div
-        v-if="error"
-        style="margin-bottom: 1rem; color: #c1121f; font-size: 0.9rem;"
-      >
+      <div v-if="error" class="perfil-alert error">
         {{ error }}
       </div>
-      <div
-        v-if="mensajeCrear"
-        style="margin-bottom: 1rem; color: #1b4965; font-size: 0.9rem;"
-      >
+      <div v-if="mensajeCrear" class="perfil-alert ok">
         {{ mensajeCrear }}
       </div>
 
-      <div
-        style="
-          display: flex;
-          gap: 0.5rem;
-          margin-bottom: 1rem;
-          border-bottom: 1px solid #ddd;
-          padding-bottom: 0.5rem;
-        "
-      >
+      <div class="perfil-tabs">
         <button
-          class="btn-ambos"
-          :style="{ background: modo === 'crear' ? '#1b4965' : '#ccc' }"
+          type="button"
+          class="tab-btn"
+          :class="{ active: modo === 'crear' }"
           @click="modo = 'crear'"
         >
           Crear perfil
         </button>
         <button
-          class="btn-ambos"
-          :style="{ background: modo === 'ver' ? '#1b4965' : '#ccc' }"
+          type="button"
+          class="tab-btn"
+          :class="{ active: modo === 'ver' }"
           @click="modo = 'ver'"
         >
           Ver perfiles
         </button>
       </div>
 
-      <div v-if="modo === 'crear'">
-        <div
-          style="
-            background: #fff;
-            padding: 1rem;
-            border-radius: 12px;
-            border: 1px solid #ddd;
-          "
-        >
-          <div v-if="pasoCrear === 'form'">
-            <h3 style="margin-bottom: 0.75rem;">Paso 1: Ingresar datos</h3>
-            <form @submit.prevent="validarYPrepararConfirmacion">
-              <div class="form-group">
-                <label>Nombre completo</label>
-                <input type="text" v-model="nuevoPerfil.nombre" />
-              </div>
-              <div class="form-group">
-                <label>Correo electrónico</label>
-                <input type="email" v-model="nuevoPerfil.correo" />
-              </div>
-              <div class="form-group">
-                <label>Contraseña</label>
-                <input type="password" v-model="nuevoPerfil.clave" />
-              </div>
-              <div class="form-group">
-                <label>Dirección</label>
-                <input type="text" v-model="nuevoPerfil.direccion" />
-              </div>
-              <div class="form-group">
-                <label>Teléfono</label>
-                <input type="text" v-model="nuevoPerfil.telefono" />
-              </div>
-              <div class="form-group">
-                <label>Rol</label>
-                <select v-model="nuevoPerfil.rol">
-                  <option value="ADMIN">Administrador</option>
-                  <option value="CLIENTE">Cliente</option>
-                </select>
-              </div>
-
-              <button type="submit" class="btn-ambos">
-                Validar y continuar
-              </button>
-            </form>
-          </div>
-
-          <div v-else-if="pasoCrear === 'confirm'">
-            <h3>Confirmar datos</h3>
-            <p><strong>Nombre:</strong> {{ perfilParaConfirmar.nombre }}</p>
-            <p><strong>Correo:</strong> {{ perfilParaConfirmar.correo }}</p>
-            <p><strong>Dirección:</strong> {{ perfilParaConfirmar.direccion }}</p>
-            <p><strong>Teléfono:</strong> {{ perfilParaConfirmar.telefono }}</p>
-            <p><strong>Rol:</strong> {{ perfilParaConfirmar.rol }}</p>
-            <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
-              <button class="btn-ambos" @click="confirmarYRegistrar">
-                Confirmar y registrar
-              </button>
-              <button
-                class="btn-ambos"
-                style="background: #6c757d;"
-                @click="cancelarRegistro"
-              >
-                Cancelar
-              </button>
+      <div v-if="modo === 'crear'" class="perfil-panel">
+        <div v-if="pasoCrear === 'form'">
+          <h3 class="panel-title">Paso 1: Ingresar datos</h3>
+          <form @submit.prevent="validarYPrepararConfirmacion">
+            <div class="form-group">
+              <label>Nombre completo</label>
+              <input type="text" v-model="nuevoPerfil.nombre" />
             </div>
+            <div class="form-group">
+              <label>Correo electrónico</label>
+              <input type="email" v-model="nuevoPerfil.correo" />
+            </div>
+            <div class="form-group">
+              <label>Contraseña</label>
+              <input type="password" v-model="nuevoPerfil.clave" />
+            </div>
+            <div class="form-group">
+              <label>Dirección</label>
+              <input type="text" v-model="nuevoPerfil.direccion" />
+            </div>
+            <div class="form-group">
+              <label>Teléfono</label>
+              <input type="text" v-model="nuevoPerfil.telefono" />
+            </div>
+            <div class="form-group">
+              <label>Rol</label>
+              <select v-model="nuevoPerfil.rol">
+                <option value="ADMIN">Administrador</option>
+                <option value="CLIENTE">Cliente</option>
+              </select>
+            </div>
+
+            <button type="submit" class="btn-ambos">
+              Validar y continuar
+            </button>
+          </form>
+        </div>
+
+        <div v-else-if="pasoCrear === 'confirm'" class="perfil-confirm">
+          <h3 class="panel-title">Confirmar datos</h3>
+          <p><strong>Nombre:</strong> {{ perfilParaConfirmar.nombre }}</p>
+          <p><strong>Correo:</strong> {{ perfilParaConfirmar.correo }}</p>
+          <p><strong>Dirección:</strong> {{ perfilParaConfirmar.direccion }}</p>
+          <p><strong>Teléfono:</strong> {{ perfilParaConfirmar.telefono }}</p>
+          <p><strong>Rol:</strong> {{ perfilParaConfirmar.rol }}</p>
+
+          <div class="perfil-confirm-buttons">
+            <button class="btn-ambos" @click="confirmarYRegistrar">
+              Confirmar y registrar
+            </button>
+            <button
+              type="button"
+              class="btn-secundario"
+              @click="cancelarRegistro"
+            >
+              Cancelar
+            </button>
           </div>
         </div>
       </div>
 
-      <div v-else>
-        <div
-          style="
-            background: #fff;
-            padding: 1rem;
-            border-radius: 12px;
-            border: 1px solid #ddd;
-          "
+      <div v-else class="perfil-panel">
+        <h3 class="panel-title">Perfiles registrados</h3>
+
+        <p v-if="loading">Cargando perfiles...</p>
+
+        <table
+          v-else
+          class="perfil-table"
         >
-          <h3 style="margin-bottom: 0.75rem;">Perfiles registrados</h3>
+          <thead>
+            <tr>
+              <th>Nombre</th>
+              <th>Correo</th>
+              <th>Dirección</th>
+              <th>Teléfono</th>
+              <th>Rol</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr
+              v-for="perfil in perfiles"
+              :key="perfil.id"
+              @click="seleccionarPerfil(perfil)"
+              :class="{
+                selected:
+                  perfilSeleccionado && perfilSeleccionado.id === perfil.id,
+              }"
+            >
+              <td>{{ perfil.nombre }}</td>
+              <td>{{ perfil.correo }}</td>
+              <td>{{ perfil.direccion }}</td>
+              <td>{{ perfil.telefono }}</td>
+              <td>{{ perfil.rol }}</td>
+            </tr>
+          </tbody>
+        </table>
 
-          <p v-if="loading">Cargando perfiles...</p>
+        <p v-if="!loading && !perfiles.length">
+          No hay perfiles registrados aún.
+        </p>
 
-          <table
-            v-else
-            style="
-              width: 100%;
-              border-collapse: collapse;
-              font-size: 0.9rem;
-              margin-bottom: 1rem;
-            "
-          >
-            <thead>
-              <tr>
-                <th style="border-bottom: 1px solid #ddd; padding: 0.5rem;">
-                  Nombre
-                </th>
-                <th style="border-bottom: 1px solid #ddd; padding: 0.5rem;">
-                  Correo
-                </th>
-                <th style="border-bottom: 1px solid #ddd; padding: 0.5rem;">
-                  Dirección
-                </th>
-                <th style="border-bottom: 1px solid #ddd; padding: 0.5rem;">
-                  Teléfono
-                </th>
-                <th style="border-bottom: 1px solid #ddd; padding: 0.5rem;">
-                  Rol
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr
-                v-for="perfil in perfiles"
-                :key="perfil.id"
-                @click="seleccionarPerfil(perfil)"
-                :style="{
-                  borderBottom: '1px solid #eee',
-                  background:
-                    perfilSeleccionado && perfilSeleccionado.id === perfil.id
-                      ? '#e7f1ff'
-                      : 'transparent',
-                  cursor: 'pointer',
-                }"
-              >
-                <td style="padding: 0.5rem;">{{ perfil.nombre }}</td>
-                <td style="padding: 0.5rem;">{{ perfil.correo }}</td>
-                <td style="padding: 0.5rem;">{{ perfil.direccion }}</td>
-                <td style="padding: 0.5rem;">{{ perfil.telefono }}</td>
-                <td style="padding: 0.5rem;">{{ perfil.rol }}</td>
-              </tr>
-            </tbody>
-          </table>
-
-          <div
-            v-if="perfilSeleccionado"
-            style="
-              background: #f8f9fa;
-              padding: 1rem;
-              border-radius: 12px;
-              border: 1px solid #ddd;
-              font-size: 0.9rem;
-            "
-          >
-            <h4>Ver perfil: {{ perfilSeleccionado.nombre }}</h4>
-            <p><strong>ID:</strong> {{ perfilSeleccionado.id }}</p>
-            <p><strong>Correo:</strong> {{ perfilSeleccionado.correo }}</p>
-            <p><strong>Dirección:</strong> {{ perfilSeleccionado.direccion }}</p>
-            <p><strong>Teléfono:</strong> {{ perfilSeleccionado.telefono }}</p>
-            <p><strong>Rol:</strong> {{ perfilSeleccionado.rol }}</p>
-          </div>
+        <div
+          v-if="perfilSeleccionado"
+          class="perfil-detalle"
+        >
+          <h4>Ver perfil: {{ perfilSeleccionado.nombre }}</h4>
+          <p><strong>Correo:</strong> {{ perfilSeleccionado.correo }}</p>
+          <p><strong>Dirección:</strong> {{ perfilSeleccionado.direccion }}</p>
+          <p><strong>Teléfono:</strong> {{ perfilSeleccionado.telefono }}</p>
+          <p><strong>Rol:</strong> {{ perfilSeleccionado.rol }}</p>
         </div>
       </div>
-    </template>
+    </div>
 
-    <template v-else>
-      <h2 style="margin-bottom: 0.5rem;">Mi perfil</h2>
-      <p style="margin-bottom: 1rem;">
-        Aquí puedes consultar los datos de tu cuenta.
-      </p>
+    <div v-else class="perfil-card">
+      <header class="perfil-header">
+        <h2>Tu perfil</h2>
+      </header>
 
-      <div
-        style="
-          background: #fff;
-          padding: 1rem;
-          border-radius: 12px;
-          border: 1px solid #ddd;
-          font-size: 0.9rem;
-        "
-      >
-        <p><strong>ID:</strong> {{ props.currentUser?.id }}</p>
+      <div class="perfil-detalle perfil-detalle-usuario">
         <p><strong>Nombre:</strong> {{ props.currentUser?.nombre }}</p>
         <p><strong>Correo:</strong> {{ props.currentUser?.correo }}</p>
         <p><strong>Dirección:</strong> {{ props.currentUser?.direccion }}</p>
         <p><strong>Teléfono:</strong> {{ props.currentUser?.telefono }}</p>
-        <p><strong>Rol:</strong> {{ props.currentUser?.rol }}</p>
       </div>
-    </template>
+    </div>
   </section>
 </template>
+
+<style scoped>
+.perfil-wrapper {
+  padding: 2.5rem 1rem 3rem;
+  display: flex;
+  justify-content: center;
+}
+
+.perfil-card {
+  background: var(--cotton-light, #fcf5e9);
+  border-radius: 20px;
+  padding: 2rem 1.75rem;
+  max-width: 900px;
+  width: 100%;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18);
+}
+
+.perfil-header {
+  margin-bottom: 1.5rem;
+  text-align: left;
+}
+
+.perfil-header h2 {
+  font-size: 1.6rem;
+  margin-bottom: 0.3rem;
+  color: var(--cotton-dark, #1c262e);
+}
+
+.perfil-header p {
+  color: #333;
+  font-size: 0.95rem;
+}
+
+.perfil-alert {
+  padding: 0.6rem 0.8rem;
+  border-radius: 10px;
+  font-size: 0.9rem;
+  margin-bottom: 0.8rem;
+}
+.perfil-alert.error {
+  background: #f8d7da;
+  color: #842029;
+}
+.perfil-alert.ok {
+  background: #d1e7dd;
+  color: #0f5132;
+}
+
+.perfil-tabs {
+  display: inline-flex;
+  gap: 0.5rem;
+  border-radius: 999px;
+  background: #e6e6e6;
+  padding: 0.2rem;
+  margin-bottom: 1.5rem;
+}
+.tab-btn {
+  border: none;
+  background: transparent;
+  padding: 0.5rem 1rem;
+  border-radius: 999px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #555;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.tab-btn.active {
+  background: #ffffff;
+  color: var(--cotton-dark, #1c262e);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+
+.perfil-panel {
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 1.5rem;
+  border: 1px solid #dddddd;
+}
+.panel-title {
+  font-size: 1.1rem;
+  margin-bottom: 0.75rem;
+  color: var(--cotton-dark, #1c262e);
+}
+
+.perfil-confirm p {
+  margin-bottom: 0.3rem;
+  font-size: 0.9rem;
+  color: #222;
+}
+.perfil-confirm-buttons {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+.btn-secundario {
+  display: inline-block;
+  border: none;
+  padding: 0.65rem 1.1rem;
+  border-radius: 999px;
+  background: #6c757d;
+  color: #ffffff;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.perfil-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+  margin-bottom: 1rem;
+  background: #ffffff;
+  border-radius: 12px;
+  overflow: hidden;
+}
+.perfil-table thead {
+  background: #f0f0f0;
+}
+.perfil-table th,
+.perfil-table td {
+  padding: 0.55rem 0.6rem;
+  border-bottom: 1px solid #e4e4e4;
+  text-align: left;
+  color: #222;
+}
+.perfil-table tr.selected {
+  background: #e7f1ff;
+}
+
+.perfil-detalle {
+  background: #ffffff;
+  padding: 1.2rem;
+  border-radius: 12px;
+  border: 1px solid #ccc;
+  font-size: 0.9rem;
+  color: #222;
+  box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.05);
+}
+.perfil-detalle h4 {
+  margin-bottom: 0.6rem;
+  color: #1c262e;
+  font-weight: 700;
+}
+.perfil-detalle p {
+  margin-bottom: 0.35rem;
+}
+.perfil-detalle strong {
+  color: #000;
+  font-weight: 600;
+}
+</style>
+
