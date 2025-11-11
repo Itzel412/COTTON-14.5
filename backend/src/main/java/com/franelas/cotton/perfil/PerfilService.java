@@ -35,7 +35,7 @@ public class PerfilService {
         }
     }
 
-    public boolean registrarPerfil(Perfil nuevoPerfil) {
+    public String registrarPerfil(Perfil nuevoPerfil) {
         ObjectMapper mapper = new ObjectMapper();
 
         try {
@@ -47,7 +47,24 @@ public class PerfilService {
                 perfiles = mapper.readValue(jsonFile, typeReference);
             } else {
                 perfiles = new ArrayList<>();
-                System.err.println("Archivo no encontrado o vacío, creando lista nueva: " + RUTA_JSON);
+                System.err.println("Archivo no encontrado o vacio, creando lista nueva: " + RUTA_JSON);
+            }
+
+            String correoNuevo = nuevoPerfil.getCorreo();
+
+
+            String emailRegex = "^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$";
+            if (correoNuevo == null || !correoNuevo.matches(emailRegex)) {
+
+                return "Error: El correo '" + correoNuevo + "' no tiene un formato valido.";
+            }
+
+            boolean correoYaExiste = perfiles.stream()
+                    .anyMatch(perfil -> perfil.getCorreo().equalsIgnoreCase(correoNuevo));
+
+            if (correoYaExiste) {
+
+                return "Error: El correo " + correoNuevo + " ya esta en uso.";
             }
 
             if (nuevoPerfil.getId() == 0) {
@@ -62,12 +79,13 @@ public class PerfilService {
             mapper.writerWithDefaultPrettyPrinter().writeValue(jsonFile, perfiles);
 
             System.out.println("Perfil " + nuevoPerfil.getNombre() + " registrado exitosamente");
-            return true;
+
+            return null;
 
         } catch (Exception e) {
             System.err.println("Error al escribir el archivo JSON: " + e.getMessage());
             e.printStackTrace();
-            return false;
+            return "Error interno del servidor.";
         }
     }
 

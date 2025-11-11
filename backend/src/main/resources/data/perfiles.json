@@ -38,4 +38,52 @@
   "direccion" : "Valencia",
   "telefono" : "0412726267268",
   "rol" : "CLIENTE"
+}, {
+  "id" : 6,
+  "nombre" : "hola como",
+  "correo" : "hola@gmail.com",
+  "clave" : "1234565",
+  "direccion" : "caracas",
+  "telefono" : "0212266890",
+  "rol" : "CLIENTE"
+}, {
+  "id" : 7,
+  "nombre" : "hhh hhh",
+  "correo" : "hola@jjj",
+  "clave" : "1234565",
+  "direccion" : "jjjjjj",
+  "telefono" : "021212",
+  "rol" : "CLIENTE"
+}, {
+  "id" : 8,
+  "nombre" : "itzel eduardo perez",
+  "correo" : "itzel@gmail.com",
+  "clave" : "123456",
+  "direccion" : "caracas",
+  "telefono" : "04126791340",
+  "rol" : "CLIENTE"
+}, {
+  "id" : 9,
+  "nombre" : "juana maria",
+  "correo" : "kellyapolinarm@gmail.com",
+  "clave" : "123",
+  "direccion" : "caricuao",
+  "telefono" : "02125556632",
+  "rol" : "CLIENTE"
+}, {
+  "id" : 10,
+  "nombre" : "maria hernandez",
+  "correo" : "kellyapolinarm@gmail.com",
+  "clave" : "12345678890000",
+  "direccion" : "juanana",
+  "telefono" : "0212555",
+  "rol" : "CLIENTE"
+}, {
+  "id" : 11,
+  "nombre" : "juam",
+  "correo" : "itzel@corrrreo.com",
+  "clave" : "123456",
+  "direccion" : "juan",
+  "telefono" : "29642+44+",
+  "rol" : "CLIENTE"
 } ]

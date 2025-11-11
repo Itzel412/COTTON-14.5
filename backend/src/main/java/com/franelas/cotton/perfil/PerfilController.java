@@ -23,8 +23,14 @@ public class PerfilController {
     }
 
     @PostMapping("/registrar")
-    public boolean registrarPerfil(@RequestBody Perfil nuevoPerfil) {
-        return perfilService.registrarPerfil(nuevoPerfil);
+    public ResponseEntity<?> registrarPerfil(@RequestBody Perfil nuevoPerfil) {
+        String error = perfilService.registrarPerfil(nuevoPerfil);
+
+        if (error != null) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+        }
+
+        return ResponseEntity.ok(true);
     }
 
     // ====== NUEVO: LOGIN ======
