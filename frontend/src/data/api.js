@@ -27,48 +27,43 @@ export async function getPerfiles() {
 }
 
 export async function createPerfil(nuevoPerfil) {
-  const response = await fetch(`${API_BASE_URL}/registrar`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(nuevoPerfil),
-  });
+    const response = await fetch(`${API_BASE_URL}/registrar`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(nuevoPerfil),
+    });
 
-  if (!response.ok) {
-    throw new Error('Error HTTP al registrar perfil');
-  }
+    if (!response.ok) {
+        const textoError = await response.text();
+        throw new Error(textoError);
+    }
 
-  const ok = await response.json();
-  if (!ok) {
-    throw new Error('El backend no pudo registrar el perfil');
-  }
-
-  return await getPerfiles();
+    await response.json();
+    return await getPerfiles();
 }
 
+
 export async function registerClientePerfil(datos) {
-  const payload = {
-    nombre: datos.nombre,
-    correo: datos.correo,
-    clave: datos.clave,
-    direccion: datos.direccion,
-    telefono: datos.telefono,
-    rol: 'CLIENTE',
-  };
+    const payload = {
+        nombre: datos.nombre,
+        correo: datos.correo,
+        clave: datos.clave,
+        direccion: datos.direccion,
+        telefono: datos.telefono,
+        rol: 'CLIENTE',
+    };
 
-  const response = await fetch(`${API_BASE_URL}/registrar`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
-  });
+    const response = await fetch(`${API_BASE_URL}/registrar`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+    });
 
-  if (!response.ok) {
-    throw new Error('Error HTTP al registrar cliente');
-  }
+    if (!response.ok) {
+        const textoError = await response.text();
 
-  const ok = await response.json();
-  if (!ok) {
-    throw new Error('El backend no pudo registrar el cliente');
-  }
+        throw new Error(textoError);
+    }
 
-  return await loginRequest(payload.correo, payload.clave);
+    return await loginRequest(payload.correo, payload.clave);
 }
