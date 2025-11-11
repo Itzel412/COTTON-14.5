@@ -26,4 +26,11 @@
   "talla" : "S",
   "precio" : 12.4,
   "stock" : 4
+}, {
+  "id" : 0,
+  "nombre" : null,
+  "color" : "Amarillo",
+  "talla" : "L",
+  "precio" : 15.0,
+  "stock" : 10
 } ]

@@ -10,4 +10,16 @@
   "iva" : 6.72,
   "total" : 48.72,
   "fechaEmision" : "2025-11-11"
+}, {
+  "id" : 2,
+  "idPedido" : 2,
+  "clienteCorreo" : "carlos@correo.com",
+  "color" : "Negro",
+  "talla" : "M",
+  "cantidad" : 1,
+  "precioUnitario" : 10.5,
+  "subtotal" : 10.5,
+  "iva" : 1.68,
+  "total" : 12.18,
+  "fechaEmision" : "2025-11-11"
 } ]

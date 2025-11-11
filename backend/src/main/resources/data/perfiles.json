@@ -38,4 +38,12 @@
   "direccion" : "Valencia",
   "telefono" : "0412726267268",
   "rol" : "CLIENTE"
-}]
+}, {
+  "id" : 6,
+  "nombre" : "Diego",
+  "correo" : "diegom@gmail.com",
+  "clave" : "12345",
+  "direccion" : "El Paraiso",
+  "telefono" : "041257653246782",
+  "rol" : "CLIENTE"
+} ]
