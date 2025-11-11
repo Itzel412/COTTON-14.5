@@ -72,3 +72,42 @@ export async function registerClientePerfil(datos) {
 
   return await loginRequest(payload.correo, payload.clave);
 }
+
+const INVENTARIO_BASE_URL = 'http://localhost:8080/api/inventario';
+const PEDIDOS_BASE_URL = 'http://localhost:8080/api/pedidos';
+
+export async function getProductos() {
+  const response = await fetch(`${INVENTARIO_BASE_URL}/productos`);
+  if (!response.ok) {
+    throw new Error('Error al obtener productos del inventario');
+  }
+  return await response.json();
+}
+
+export async function createPedido(pedido) {
+  const response = await fetch(PEDIDOS_BASE_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(pedido),
+  });
+
+  if (!response.ok) {
+    throw new Error('Error HTTP al registrar el pedido');
+  }
+
+  const ok = await response.json();
+  if (!ok) {
+    throw new Error('El backend no pudo registrar el pedido');
+  }
+
+  return ok;
+}
+
+export async function getPedidos() {
+  const response = await fetch(PEDIDOS_BASE_URL);
+  if (!response.ok) {
+    throw new Error('Error al obtener pedidos');
+  }
+  return await response.json();
+}
+

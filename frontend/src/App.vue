@@ -4,11 +4,12 @@ import { ref } from 'vue';
 import LoginView from './views/LoginView.vue';
 import DashboardView from './views/DashboardView.vue';
 import PerfilView from './views/PerfilView.vue';
-// importa los otros módulos que ya tengas
-// import InventarioView from './views/InventarioView.vue';
-// import PedidosView from './views/PedidosView.vue';
+import InventarioView from './views/InventarioView.vue';
+import PedidosView from './views/PedidosView.vue';
+// si luego usas facturas / reclamos, los importas aquí
 // import FacturasView from './views/FacturasView.vue';
 // import ReclamosView from './views/ReclamosView.vue';
+
 import HeaderBar from './components/HeaderBar.vue';
 
 const currentUser = ref(null);
@@ -29,7 +30,6 @@ const handleOpenModule = (modulo) => {
 };
 </script>
 
-
 <template>
   <div id="app">
     <!-- Si no hay usuario, mostrar login -->
@@ -45,27 +45,33 @@ const handleOpenModule = (modulo) => {
       />
 
       <main class="app-main">
+        <!-- DASHBOARD -->
         <DashboardView
           v-if="currentModule === 'dashboard'"
           :currentUser="currentUser"
           @open-module="handleOpenModule"
         />
 
+        <!-- PERFIL -->
         <PerfilView
           v-else-if="currentModule === 'perfiles'"
           :currentUser="currentUser"
         />
 
-        <!-- EJEMPLOS: otros módulos -->
-        <!--
+        <!-- CATÁLOGO / INVENTARIO -->
         <InventarioView
           v-else-if="currentModule === 'inventario'"
           :currentUser="currentUser"
         />
+
+        <!-- PEDIDOS -->
         <PedidosView
           v-else-if="currentModule === 'pedidos'"
           :currentUser="currentUser"
         />
+
+        <!-- Si luego agregas estos, solo quitas los comentarios -->
+        <!--
         <FacturasView
           v-else-if="currentModule === 'facturas'"
           :currentUser="currentUser"
