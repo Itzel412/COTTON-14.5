@@ -16,9 +16,9 @@ const loading = ref(false);
 const error = ref(null);
 const mensaje = ref(null);
 
-const modo = ref('crear'); 
+const modo = ref('crear'); // cliente: crear / mis-reclamos
 
-const pasoCrear = ref('form'); 
+const pasoCrear = ref('form');
 const nuevoReclamo = ref({
   titulo: '',
   descripcion: '',
@@ -167,54 +167,61 @@ onMounted(() => {
         </div>
       </transition>
 
+      <!-- ADMIN -->
       <template v-if="esAdmin">
         <div class="rec-panel">
           <h3 class="panel-title">Reclamos registrados</h3>
 
           <p v-if="loading">Cargando reclamos...</p>
 
-          <table v-else class="rec-table">
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>Cliente</th>
-                <th>Título</th>
-                <th>Descripción</th>
-                <th>Fecha</th>
-                <th>Estado</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="r in reclamosFiltrados" :key="r.id">
-                <td>{{ r.id }}</td>
-                <td>{{ r.usuario }}</td>
-                <td>{{ r.titulo }}</td>
-                <td>{{ r.descripcion }}</td>
-                <td>{{ r.fechaCreacion }}</td>
-                <td>
-                  <select
-                    :value="r.estado"
-                    @change="(ev) => cambiarEstado(r, ev.target.value)"
-                  >
-                    <option
-                      v-for="opt in ESTADOS"
-                      :key="opt.value"
-                      :value="opt.value"
+          <div v-else class="rec-table-wrapper">
+            <table class="rec-table">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Cliente</th>
+                  <th>Título</th>
+                  <th>Descripción</th>
+                  <th>Fecha</th>
+                  <th>Estado</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="r in reclamosFiltrados" :key="r.id">
+                  <td>{{ r.id }}</td>
+                  <td>{{ r.usuario }}</td>
+                  <td>{{ r.titulo }}</td>
+                  <td>{{ r.descripcion }}</td>
+                  <td>{{ r.fechaCreacion }}</td>
+                  <td>
+                    <select
+                      :value="r.estado"
+                      @change="(ev) => cambiarEstado(r, ev.target.value)"
                     >
-                      {{ opt.label }}
-                    </option>
-                  </select>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+                      <option
+                        v-for="opt in ESTADOS"
+                        :key="opt.value"
+                        :value="opt.value"
+                      >
+                        {{ opt.label }}
+                      </option>
+                    </select>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
 
-          <p v-if="!loading && !reclamosFiltrados.length">
-            No hay reclamos registrados.
-          </p>
+            <p
+              v-if="!loading && !reclamosFiltrados.length"
+              class="rec-empty-text"
+            >
+              No hay reclamos registrados.
+            </p>
+          </div>
         </div>
       </template>
 
+      <!-- CLIENTE -->
       <template v-else>
         <div class="rec-tabs">
           <button
@@ -235,6 +242,7 @@ onMounted(() => {
           </button>
         </div>
 
+        <!-- Crear reclamo -->
         <div v-if="modo === 'crear'" class="rec-panel">
           <h3 class="panel-title">Nuevo reclamo</h3>
 
@@ -259,10 +267,7 @@ onMounted(() => {
             </form>
           </div>
 
-          <div
-            v-else
-            class="reclamo-confirm"
-          >
+          <div v-else class="reclamo-confirm">
             <h4>Confirmar datos del reclamo</h4>
             <p class="reclamo-confirm-text">
               <strong>Título:</strong> {{ reclamoParaConfirmar.titulo }}
@@ -290,35 +295,41 @@ onMounted(() => {
           </div>
         </div>
 
+        <!-- Mis reclamos -->
         <div v-else class="rec-panel">
           <h3 class="panel-title">Mis reclamos</h3>
 
           <p v-if="loading">Cargando reclamos...</p>
 
-          <table v-else class="rec-table">
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>Título</th>
-                <th>Descripción</th>
-                <th>Fecha</th>
-                <th>Estado</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="r in reclamosFiltrados" :key="r.id">
-                <td>{{ r.id }}</td>
-                <td>{{ r.titulo }}</td>
-                <td>{{ r.descripcion }}</td>
-                <td>{{ r.fechaCreacion }}</td>
-                <td>{{ r.estado }}</td>
-              </tr>
-            </tbody>
-          </table>
+          <div v-else class="rec-table-wrapper">
+            <table class="rec-table">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Título</th>
+                  <th>Descripción</th>
+                  <th>Fecha</th>
+                  <th>Estado</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="r in reclamosFiltrados" :key="r.id">
+                  <td>{{ r.id }}</td>
+                  <td>{{ r.titulo }}</td>
+                  <td>{{ r.descripcion }}</td>
+                  <td>{{ r.fechaCreacion }}</td>
+                  <td>{{ r.estado }}</td>
+                </tr>
+              </tbody>
+            </table>
 
-          <p v-if="!loading && !reclamosFiltrados.length">
-            Todavía no has registrado reclamos.
-          </p>
+            <p
+              v-if="!loading && !reclamosFiltrados.length"
+              class="rec-empty-text"
+            >
+              Todavía no has registrado reclamos.
+            </p>
+          </div>
         </div>
       </template>
     </div>
@@ -336,7 +347,7 @@ onMounted(() => {
   background: var(--cotton-light, #fcf5e9);
   border-radius: 20px;
   padding: 2rem 1.75rem;
-  max-width: 1100px;
+  max-width: 1300px; /* un poco más ancho para que quepa todo cómodo */
   width: 100%;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18);
 }
@@ -356,6 +367,7 @@ onMounted(() => {
   font-size: 0.95rem;
 }
 
+/* Animación de fade para el modal */
 .fade-enter-active,
 .fade-leave-active {
   transition: opacity 0.15s ease;
@@ -365,6 +377,7 @@ onMounted(() => {
   opacity: 0;
 }
 
+/* Modal de alertas */
 .alert-overlay {
   position: fixed;
   inset: 0;
@@ -408,6 +421,7 @@ onMounted(() => {
   cursor: pointer;
 }
 
+/* Tabs modo cliente */
 .rec-tabs {
   display: inline-flex;
   gap: 0.5rem;
@@ -433,19 +447,23 @@ onMounted(() => {
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
 }
 
+/* Panel blanco que contiene la tabla/form */
 .rec-panel {
   background: #ffffff;
   border-radius: 16px;
-  padding: 1.5rem;
+  padding: 1.5rem 1.75rem;
   border: 1px solid #dddddd;
+  /* sin overflow: queremos que la tabla se adapte, no scroll */
 }
 
+/* Títulos de panel */
 .panel-title {
   font-size: 1.1rem;
   margin-bottom: 0.75rem;
   color: var(--cotton-dark, #1c262e);
 }
 
+/* Tabla de reclamos: se ajusta al ancho disponible */
 .rec-table {
   width: 100%;
   border-collapse: collapse;
@@ -454,16 +472,46 @@ onMounted(() => {
   background: #ffffff;
   border-radius: 12px;
   overflow: hidden;
+  table-layout: fixed; /* permite repartir mejor el espacio entre columnas */
 }
+
 .rec-table thead {
   background: #f0f0f0;
 }
+
 .rec-table th,
 .rec-table td {
-  padding: 0.55rem 0.6rem;
+  padding: 0.55rem 0.7rem;
   border-bottom: 1px solid #e4e4e4;
   text-align: left;
 }
+
+/* Anchos relativos por columna para que todo entre sin barra */
+.rec-table th:nth-child(1),
+.rec-table td:nth-child(1) {
+  width: 6%;   /* ID */
+}
+.rec-table th:nth-child(2),
+.rec-table td:nth-child(2) {
+  width: 18%;  /* Cliente */
+}
+.rec-table th:nth-child(3),
+.rec-table td:nth-child(3) {
+  width: 16%;  /* Título */
+}
+.rec-table th:nth-child(4),
+.rec-table td:nth-child(4) {
+  width: 38%;  /* Descripción */
+}
+.rec-table th:nth-child(5),
+.rec-table td:nth-child(5) {
+  width: 12%;  /* Fecha */
+}
+.rec-table th:nth-child(6),
+.rec-table td:nth-child(6) {
+  width: 10%;  /* Estado */
+}
+
 .rec-table th {
   color: #1c262e;
   font-weight: 600;
@@ -472,6 +520,19 @@ onMounted(() => {
   color: #333333;
 }
 
+/* Descripción: que haga saltos de línea y no rompa el layout */
+.rec-table td:nth-child(4) {
+  word-break: break-word;
+  white-space: normal;
+}
+
+/* Select de estado: ancho justo pero sin forzar scroll */
+.rec-table td:last-child select {
+  width: 100%;
+  min-width: 0;
+}
+
+/* Bloque de confirmación de reclamo (modo cliente) */
 .reclamo-confirm {
   padding: 1rem;
   border-radius: 12px;
