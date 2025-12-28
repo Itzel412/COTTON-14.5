@@ -1,0 +1,49 @@
+[ {
+  "id" : 1,
+  "nombre" : "Itzel La Rosa",
+  "correo" : "itzel@correo.com",
+  "clave" : "123456",
+  "direccion" : "Caracas",
+  "telefono" : "04121234567",
+  "rol" : "ADMIN"
+}, {
+  "id" : 2,
+  "nombre" : "Carlos Belfort",
+  "correo" : "carlos@correo.com",
+  "clave" : "abcde",
+  "direccion" : "Calle 4, Valencia",
+  "telefono" : "0414-7654321",
+  "rol" : "CLIENTE"
+}, {
+  "id" : 3,
+  "nombre" : "Kelly Apolinar",
+  "correo" : "kellyapolinarm@gmail.com",
+  "clave" : "Caracas10",
+  "direccion" : "El junquito",
+  "telefono" : "04121234567",
+  "rol" : "ADMIN"
+}, {
+  "id" : 4,
+  "nombre" : "Gabriel Canino",
+  "correo" : "canino1@correo.com",
+  "clave" : "gabowe",
+  "direccion" : "El paraiso",
+  "telefono" : "041233894060",
+  "rol" : "CLIENTE"
+}, {
+  "id" : 6,
+  "nombre" : "Diego",
+  "correo" : "diegom@gmail.com",
+  "clave" : "12345",
+  "direccion" : "El Paraiso",
+  "telefono" : "041257653246782",
+  "rol" : "CLIENTE"
+}, {
+  "id" : 7,
+  "nombre" : "juan billen",
+  "correo" : "juan@gmail.com",
+  "clave" : "123456",
+  "direccion" : "yyyuuu",
+  "telefono" : "0412151515",
+  "rol" : "CLIENTE"
+} ]

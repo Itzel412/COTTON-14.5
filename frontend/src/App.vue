@@ -1,6 +1,41 @@
 <script setup>
+<<<<<<< Updated upstream
 import { RouterLink, RouterView } from 'vue-router'
 import HelloWorld from './components/HelloWorld.vue'
+=======
+import { ref } from 'vue';
+
+// Vistas existentes
+import LoginView from './views/LoginView.vue';
+import DashboardView from './views/DashboardView.vue';
+import PerfilView from './views/PerfilView.vue';
+import InventarioView from './views/InventarioView.vue';
+import PedidosView from './views/PedidosView.vue';
+import FacturasView from './views/FacturasView.vue';
+import ReclamosView from './views/ReclamosView.vue';
+
+// Componentes
+import HeaderBar from './components/HeaderBar.vue';
+// IMPORTAMOS EL NUEVO COMPONENTE DE TIENDA/CARRITO
+import TiendaCliente from './components/TiendaCliente.vue';
+
+const currentUser = ref(null);
+const currentModule = ref('dashboard');
+
+const handleLoginSuccess = (user) => {
+  currentUser.value = user;
+  currentModule.value = 'dashboard';
+};
+
+const handleLogout = () => {
+  currentUser.value = null;
+  currentModule.value = 'dashboard';
+};
+
+const handleOpenModule = (modulo) => {
+  currentModule.value = modulo;
+};
+>>>>>>> Stashed changes
 </script>
 
 <template>
@@ -10,16 +45,58 @@ import HelloWorld from './components/HelloWorld.vue'
     <div class="wrapper">
       <HelloWorld msg="You did it!" />
 
+<<<<<<< Updated upstream
       <nav>
         <RouterLink to="/">Home</RouterLink>
         <RouterLink to="/about">About</RouterLink>
       </nav>
+=======
+      <main class="app-main">
+        
+        <DashboardView
+          v-if="currentModule === 'dashboard'"
+          :currentUser="currentUser"
+          @open-module="handleOpenModule"
+        />
+
+        <PerfilView
+          v-else-if="currentModule === 'perfiles'"
+          :currentUser="currentUser"
+        />
+
+        <InventarioView
+          v-else-if="currentModule === 'inventario'"
+          :currentUser="currentUser"
+        />
+
+        <TiendaCliente
+          v-else-if="currentModule === 'pedidos' && currentUser.rol === 'CLIENTE'"
+          :currentUser="currentUser"
+        />
+
+        <PedidosView
+          v-else-if="currentModule === 'pedidos'"
+          :currentUser="currentUser"
+        />
+
+        <FacturasView
+          v-else-if="currentModule === 'facturas'"
+          :currentUser="currentUser"
+        />
+
+        <ReclamosView
+          v-else-if="currentModule === 'reclamos'"
+          :currentUser="currentUser"
+        />
+      </main>
+>>>>>>> Stashed changes
     </div>
   </header>
 
   <RouterView />
 </template>
 
+<<<<<<< Updated upstream
 <style scoped>
 header {
   line-height: 1.5;
@@ -83,3 +160,19 @@ nav a:first-of-type {
   }
 }
 </style>
+=======
+<style>
+/* Estilos globales básicos para asegurar que se vea bien */
+body {
+  margin: 0;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background-color: #f4f4f4;
+}
+
+.app-main {
+  padding: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+</style>
+>>>>>>> Stashed changes
