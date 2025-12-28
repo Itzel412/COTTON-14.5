@@ -3,10 +3,10 @@ package com.franelas.cotton.facturas;
 public class Factura {
 
     private long id;
-    private String codigoPedido; // EJ: "ORD-XYZ123"
+    private String codigoPedido; 
     private String clienteCorreo;
     
-    private String descripcion; // Ej: "Pedido ORD-XYZ... (3 items)"
+    private String descripcion;
     private int cantidadItems;
 
     private double subtotal;
@@ -14,7 +14,7 @@ public class Factura {
     private double total;
 
     private String fechaEmision;
-    private String estado; // PENDIENTE, PAGADA, ANULADA
+    private String estado; 
 
     public Factura() {}
 

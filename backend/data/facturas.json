@@ -1,1 +1,12 @@
-[ ]
+[ {
+  "id" : 1,
+  "codigoPedido" : "ORD-8CD2A181",
+  "clienteCorreo" : "juan@gmail.com",
+  "descripcion" : "Pedido ORD-8CD2A181 (3 items)",
+  "cantidadItems" : 5,
+  "subtotal" : 44.8,
+  "iva" : 7.167999999999999,
+  "total" : 51.967999999999996,
+  "fechaEmision" : "2025-12-28",
+  "estado" : "PAGADA"
+} ]

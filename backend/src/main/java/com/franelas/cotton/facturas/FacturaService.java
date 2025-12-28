@@ -54,7 +54,7 @@ public class FacturaService {
                     .findFirst().orElse(null);
 
             if (pedidoRef == null) {
-                System.err.println("❌ Pedido referencia no encontrado: " + idReferencia);
+                System.err.println(" Pedido referencia no encontrado: " + idReferencia);
                 return false;
             }
 
@@ -63,7 +63,7 @@ public class FacturaService {
             // 2. Verificar si ya existe factura para este grupo
             List<Factura> facturas = obtenerTodasLasFacturas();
             if (facturas.stream().anyMatch(f -> f.getCodigoPedido() != null && f.getCodigoPedido().equals(codigoGrupo))) {
-                System.err.println("⚠️ Ya existe factura para el código " + codigoGrupo);
+                System.err.println(" Ya existe factura para el código " + codigoGrupo);
                 return false; 
             }
 
@@ -98,7 +98,7 @@ public class FacturaService {
             facturas.add(f);
             mapper.writerWithDefaultPrettyPrinter().writeValue(new File(RUTA_JSON), facturas);
 
-            System.out.println("✅ Factura creada: ID " + f.getId());
+            System.out.println("Factura creada: ID " + f.getId());
             return true;
 
         } catch (Exception e) {

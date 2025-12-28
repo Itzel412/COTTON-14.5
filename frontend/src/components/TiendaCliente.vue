@@ -128,10 +128,10 @@ onMounted(cargarCatalogo);
   <div class="main-wrapper">
     <div class="tabs-nav">
       <button class="tab-btn" :class="{ active: vistaActual === 'tienda' }" @click="cambiarVista('tienda')">
-        🛍️ Catálogo
+        Catálogo
       </button>
       <button class="tab-btn" :class="{ active: vistaActual === 'historial' }" @click="cambiarVista('historial')">
-        📦 Mis Pedidos
+        Mis Pedidos
       </button>
     </div>
 

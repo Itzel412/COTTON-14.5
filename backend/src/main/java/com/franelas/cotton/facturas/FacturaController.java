@@ -39,14 +39,14 @@ public class FacturaController {
         }
     }
 
-    // --- CORRECCIÓN AQUÍ: Agregamos ("id") explícitamente ---
+    
     @DeleteMapping("/{id}")
     public boolean eliminarFactura(@PathVariable("id") long id) {
         System.out.println("🗑️ Solicitud de eliminar ID: " + id);
         return facturaService.eliminarFactura(id);
     }
 
-    // --- CORRECCIÓN AQUÍ: Agregamos ("id") explícitamente ---
+    
     @PutMapping("/{id}/estado")
     public boolean actualizarEstado(@PathVariable("id") long id, @RequestBody String nuevoEstado) {
         System.out.println("🔄 Solicitud de estado ID: " + id + " -> " + nuevoEstado);
