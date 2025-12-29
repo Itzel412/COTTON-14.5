@@ -46,4 +46,12 @@
   "direccion" : "El Paraiso",
   "telefono" : "041257653246782",
   "rol" : "CLIENTE"
+}, {
+  "id" : 7,
+  "nombre" : "Carlos Belfort",
+  "correo" : "carlosi@gmail.com",
+  "clave" : "abcdef",
+  "direccion" : "si",
+  "telefono" : "0412345678",
+  "rol" : "CLIENTE"
 } ]

@@ -23,4 +23,14 @@ public class PedidoController {
     public List<Pedido> listarPedidos() {
         return pedidoService.obtenerTodosLosPedidos();
     }
+
+    @PutMapping
+    public boolean actualizarPedido(@RequestBody Pedido nuevoPedido) {
+        if (nuevoPedido.getId() <= 0) {
+            System.err.println("Error: Se requiere un ID de pedido válido para actualizar.");
+            return false;
+        }
+
+        return pedidoService.actualizarPedido(nuevoPedido);
+    }
 }

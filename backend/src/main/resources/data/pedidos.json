@@ -69,10 +69,21 @@
   "usuario" : "canino1@correo.com",
   "idProducto" : 0,
   "nombre" : null,
-  "color" : "Negro",
-  "talla" : "M",
-  "cantidad" : 9,
-  "precioUnitario" : 10.5,
-  "total" : 94.5,
+  "color" : "Rojo",
+  "talla" : "S",
+  "cantidad" : 4,
+  "precioUnitario" : 12.4,
+  "total" : 49.6,
   "fecha" : "2025-11-11"
+}, {
+  "id" : 8,
+  "usuario" : "carlosi@gmail.com",
+  "idProducto" : 0,
+  "nombre" : null,
+  "color" : "Blanco",
+  "talla" : "L",
+  "cantidad" : 3,
+  "precioUnitario" : 10.5,
+  "total" : 31.5,
+  "fecha" : "2025-11-12"
 } ]
