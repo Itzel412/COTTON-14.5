@@ -77,7 +77,7 @@ public class PedidoService {
     private boolean procesarItemIndividual(Pedido p, List<Producto> inventario) {
         try {
             if (p.getCantidad() <= 0 || p.getCantidad() > MAX_CANTIDAD) {
-                System.err.println("❌ Cantidad inválida: " + p.getCantidad());
+                System.err.println("Cantidad inválida: " + p.getCantidad());
                 return false;
             }
 
@@ -257,6 +257,74 @@ public class PedidoService {
             mapper.writerWithDefaultPrettyPrinter().writeValue(jsonFile, pedidos);
         } catch (Exception e) {
             e.printStackTrace();
+        }
+    }
+
+    public boolean eliminarPedido(long idPedido) {
+        try {
+            System.out.println("=== Intentando eliminar pedido ID: " + idPedido + " ===");
+
+            // 1. Cargar pedidos existentes
+            File jsonFile = new File(RUTA_JSON);
+            if (!jsonFile.exists()) {
+                System.err.println("El archivo de pedidos no existe.");
+                return false;
+            }
+
+            List<Pedido> pedidos = new ArrayList<>();
+            if (jsonFile.length() > 0) {
+                pedidos = new ArrayList<>(Arrays.asList(mapper.readValue(jsonFile, Pedido[].class)));
+            }
+
+            // 2. Buscar el pedido a eliminar
+            Pedido pedidoAEliminar = pedidos.stream()
+                    .filter(p -> p.getId() == idPedido)
+                    .findFirst()
+                    .orElse(null);
+
+            if (pedidoAEliminar == null) {
+                System.err.println("No se encontró el pedido con ID: " + idPedido);
+                return false;
+            }
+
+            // 3. Restaurar el stock (Devolver productos al estante)
+            List<Producto> productos = productoService.obtenerTodosLosProductos();
+
+            Producto productoAsociado = productos.stream()
+                    .filter(p -> p.getId() == pedidoAEliminar.getIdProducto())
+                    .findFirst()
+                    .orElse(null);
+
+            if (productoAsociado != null) {
+                int stockRestaurado = productoAsociado.getStock() + pedidoAEliminar.getCantidad();
+                productoAsociado.setStock(stockRestaurado);
+                System.out.println("Stock restaurado para producto ID " + productoAsociado.getId() +
+                        ": " + stockRestaurado);
+
+                // Guardamos el inventario actualizado
+                boolean inventarioGuardado = productoService.guardarProductos(productos);
+                if (!inventarioGuardado) {
+                    System.err.println("Error crítico: No se pudo restaurar el stock. Se cancela la eliminación.");
+                    return false;
+                }
+            } else {
+                System.err.println("Advertencia: El producto asociado (ID " + pedidoAEliminar.getIdProducto() +
+                        ") ya no existe en inventario. Se eliminará el pedido sin restaurar stock.");
+            }
+
+            // 4. Eliminar el pedido de la lista y guardar cambios
+            pedidos.remove(pedidoAEliminar);
+
+            // Usamos writerWithDefaultPrettyPrinter para mantener el formato legible
+            mapper.writerWithDefaultPrettyPrinter().writeValue(jsonFile, pedidos);
+
+            System.out.println("Pedido ID " + idPedido + " eliminado correctamente.");
+            return true;
+
+        } catch (Exception e) {
+            System.err.println("Error al eliminar el pedido: " + e.getMessage());
+            e.printStackTrace();
+            return false;
         }
     }
 }

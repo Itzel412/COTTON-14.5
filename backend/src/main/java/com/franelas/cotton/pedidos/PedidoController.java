@@ -34,4 +34,9 @@ public class PedidoController {
 
         return pedidoService.actualizarPedido(nuevoPedido);
     }
+
+    @DeleteMapping("/{id}")
+    public boolean eliminarPedido(@PathVariable("id") Long id) {
+        return pedidoService.eliminarPedido(id);
+    }
 }
