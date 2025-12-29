@@ -37,4 +37,23 @@ public class ProductoController {
         // (9. @RequestBody toma el JSON del frontend y lo convierte en un objeto Producto)
         return productoService.registrarProducto(nuevoProducto);
     }
+
+    /**
+     * HISTORIA DE USUARIO: "Eliminar Producto"
+     * URL: DELETE http://localhost:8080/api/inventario/productos/{id}
+     */
+    @DeleteMapping("/productos/{id}")
+    public boolean eliminarProducto(@PathVariable long id) {
+        return productoService.eliminarProducto(id);
+    }
+
+    /**
+     * HISTORIA DE USUARIO: "Editar Producto"
+     * URL: PUT http://localhost:8080/api/inventario/productos
+     */
+    @PutMapping("/productos")
+    public boolean editarProducto(@RequestBody Producto productoActualizado) {
+        return productoService.editarProducto(productoActualizado);
+    }
+
 }

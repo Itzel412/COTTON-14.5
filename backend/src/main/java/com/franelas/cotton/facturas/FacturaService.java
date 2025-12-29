@@ -9,117 +9,127 @@ import org.springframework.stereotype.Service;
 import java.io.File;
 import java.time.LocalDate;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 public class FacturaService {
 
-    private static final double IVA_TASA = 0.16; // 16% IVA
-
-    private final String RUTA_JSON = "src/main/resources/data/facturas.json";
+    private static final double IVA_TASA = 0.16;
+    private final String RUTA_JSON = "data/facturas.json";
     private final ObjectMapper mapper = new ObjectMapper();
-
     private final PedidoService pedidoService;
 
     public FacturaService(PedidoService pedidoService) {
         this.pedidoService = pedidoService;
+        crearArchivoSiNoExiste();
+    }
+
+    private void crearArchivoSiNoExiste() {
+        try {
+            File file = new File(RUTA_JSON);
+            if (!file.getParentFile().exists()) file.getParentFile().mkdirs();
+            if (!file.exists()) mapper.writeValue(file, new ArrayList<>());
+        } catch (Exception e) { e.printStackTrace(); }
     }
 
     public List<Factura> obtenerTodasLasFacturas() {
         try {
             File jsonFile = new File(RUTA_JSON);
-            if (!jsonFile.exists() || jsonFile.length() == 0) {
-                System.err.println("No hay facturas registradas aún.");
-                return Collections.emptyList();
-            }
-
+            if (!jsonFile.exists()) return new ArrayList<>();
             return mapper.readValue(jsonFile, new TypeReference<List<Factura>>() {});
-        } catch (Exception e) {
-            System.err.println("Error al leer el archivo de facturas: " + e.getMessage());
-            e.printStackTrace();
-            return Collections.emptyList();
-        }
+        } catch (Exception e) { return new ArrayList<>(); }
     }
 
-    public boolean registrarFactura(Factura nuevaFactura) {
+    public boolean registrarFactura(Factura datosEntrada) {
         try {
-            if (nuevaFactura == null) {
-                System.err.println("La factura no puede ser nula.");
-                return false;
-            }
-
-            long idPedido = nuevaFactura.getIdPedido();
-            if (idPedido <= 0) {
-                System.err.println("idPedido inválido para facturar.");
-                return false;
-            }
-
+            // El ID que viene aquí es el ID del pedido que seleccionó el usuario
+            long idReferencia = datosEntrada.getId();
+            
             List<Pedido> pedidos = pedidoService.obtenerTodosLosPedidos();
-            Pedido pedido = pedidos.stream()
-                    .filter(p -> p.getId() == idPedido)
-                    .findFirst()
-                    .orElse(null);
+            
+            // 1. Buscamos el pedido para obtener su CÓDIGO DE GRUPO
+            Pedido pedidoRef = pedidos.stream()
+                    .filter(p -> p.getId() == idReferencia)
+                    .findFirst().orElse(null);
 
-            if (pedido == null) {
-                System.err.println("No existe pedido con id " + idPedido);
+            if (pedidoRef == null) {
+                System.err.println(" Pedido referencia no encontrado: " + idReferencia);
                 return false;
             }
 
-            File jsonFile = new File(RUTA_JSON);
-            List<Factura> facturas;
-            if (jsonFile.exists() && jsonFile.length() > 0) {
-                facturas = mapper.readValue(jsonFile, new TypeReference<List<Factura>>() {});
-            } else {
-                facturas = new ArrayList<>();
+            String codigoGrupo = pedidoRef.getCodigo(); // EJ: "ORD-12345"
+
+            // 2. Verificar si ya existe factura para este grupo
+            List<Factura> facturas = obtenerTodasLasFacturas();
+            if (facturas.stream().anyMatch(f -> f.getCodigoPedido() != null && f.getCodigoPedido().equals(codigoGrupo))) {
+                System.err.println(" Ya existe factura para el código " + codigoGrupo);
+                return false; 
             }
 
-            boolean yaFacturada = facturas.stream()
-                    .anyMatch(f -> f.getIdPedido() == idPedido);
+            // 3. Agrupar: Sumar todos los items con ese código
+            List<Pedido> itemsDelGrupo = pedidos.stream()
+                    .filter(p -> p.getCodigo() != null && p.getCodigo().equals(codigoGrupo))
+                    .collect(Collectors.toList());
 
-            if (yaFacturada) {
-                System.err.println("El pedido " + idPedido + " ya tiene una factura asociada.");
-                return false;
-            }
+            double totalGrupo = itemsDelGrupo.stream().mapToDouble(Pedido::getTotal).sum();
+            int itemsCount = itemsDelGrupo.stream().mapToInt(Pedido::getCantidad).sum();
 
-            Factura factura = new Factura();
-            factura.setIdPedido(idPedido);
-            factura.setClienteCorreo(pedido.getUsuario());
-            factura.setColor(pedido.getColor());
-            factura.setTalla(pedido.getTalla());
-            factura.setCantidad(pedido.getCantidad());
-            factura.setPrecioUnitario(pedido.getPrecioUnitario());
-
-            double subtotal = pedido.getCantidad() * pedido.getPrecioUnitario();
+            // 4. Crear la Factura Única
+            Factura f = new Factura();
+            f.setCodigoPedido(codigoGrupo);
+            f.setClienteCorreo(pedidoRef.getUsuario());
+            f.setDescripcion("Pedido " + codigoGrupo + " (" + itemsDelGrupo.size() + " items)");
+            f.setCantidadItems(itemsCount);
+            
+            double subtotal = totalGrupo;
             double iva = subtotal * IVA_TASA;
             double total = subtotal + iva;
 
-            factura.setSubtotal(subtotal);
-            factura.setIva(iva);
-            factura.setTotal(total);
+            f.setSubtotal(subtotal);
+            f.setIva(iva);
+            f.setTotal(total);
+            f.setEstado("PENDIENTE");
+            f.setFechaEmision(LocalDate.now().toString());
 
-            String fechaEmision = nuevaFactura.getFechaEmision();
-            if (fechaEmision == null || fechaEmision.isBlank()) {
-                fechaEmision = LocalDate.now().toString();
-            }
-            factura.setFechaEmision(fechaEmision);
+            long nextId = facturas.stream().mapToLong(Factura::getId).max().orElse(0) + 1;
+            f.setId(nextId);
 
-            long nextId = facturas.stream()
-                    .mapToLong(Factura::getId)
-                    .max()
-                    .orElse(0) + 1;
-            factura.setId(nextId);
+            facturas.add(f);
+            mapper.writerWithDefaultPrettyPrinter().writeValue(new File(RUTA_JSON), facturas);
 
-            facturas.add(factura);
-            mapper.writerWithDefaultPrettyPrinter().writeValue(jsonFile, facturas);
-
-            System.out.println("Factura registrada exitosamente con ID: " + factura.getId());
+            System.out.println("Factura creada: ID " + f.getId());
             return true;
 
         } catch (Exception e) {
-            System.err.println("Error al registrar factura: " + e.getMessage());
             e.printStackTrace();
             return false;
         }
+    }
+
+    public boolean eliminarFactura(long id) {
+        try {
+            List<Factura> facturas = obtenerTodasLasFacturas();
+            boolean eliminado = facturas.removeIf(f -> f.getId() == id);
+            if (eliminado) {
+                mapper.writerWithDefaultPrettyPrinter().writeValue(new File(RUTA_JSON), facturas);
+                return true;
+            }
+            return false;
+        } catch (Exception e) { return false; }
+    }
+
+    public boolean actualizarEstado(long id, String nuevoEstado) {
+        try {
+            List<Factura> facturas = obtenerTodasLasFacturas();
+            for (Factura f : facturas) {
+                if (f.getId() == id) {
+                    f.setEstado(nuevoEstado);
+                    mapper.writerWithDefaultPrettyPrinter().writeValue(new File(RUTA_JSON), facturas);
+                    return true;
+                }
+            }
+            return false;
+        } catch (Exception e) { return false; }
     }
 }

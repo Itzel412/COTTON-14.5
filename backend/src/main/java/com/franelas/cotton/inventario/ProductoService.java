@@ -117,4 +117,86 @@ public class ProductoService {
             return false;
         }
     }
+
+    public boolean eliminarProducto(long id) {
+        try {
+            File jsonFile = new File(RUTA_JSON);
+
+            if (!jsonFile.exists() || jsonFile.length() == 0) {
+                System.err.println("Error: No hay productos registrados para eliminar.");
+                return false;
+            }
+
+            List<Producto> productos = mapper.readValue(jsonFile, new TypeReference<List<Producto>>() {});
+
+            boolean eliminado = false;
+
+            for (int i = 0; i < productos.size(); i++) {
+                if (productos.get(i).getId() == id) {
+                    productos.remove(i);
+                    eliminado = true;
+                    break;
+                }
+            }
+
+            if (!eliminado) {
+                System.err.println("No se encontró un producto con el ID: " + id);
+                return false;
+            }
+
+            mapper.writerWithDefaultPrettyPrinter().writeValue(jsonFile, productos);
+            System.out.println("Producto eliminado correctamente.");
+            return true;
+
+        } catch (Exception e) {
+            System.err.println("Error al eliminar el producto: " + e.getMessage());
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    public boolean editarProducto(Producto productoActualizado) {
+        try {
+            validarProducto(productoActualizado);
+
+            File jsonFile = new File(RUTA_JSON);
+
+            if (!jsonFile.exists() || jsonFile.length() == 0) {
+                System.err.println("Error: No hay productos registrados para editar.");
+                return false;
+            }
+
+            List<Producto> productos = mapper.readValue(jsonFile, new TypeReference<List<Producto>>() {});
+
+            boolean encontrado = false;
+
+            for (int i = 0; i < productos.size(); i++) {
+                Producto p = productos.get(i);
+                if (p.getId() == productoActualizado.getId()) {
+                    productos.set(i, productoActualizado);
+                    encontrado = true;
+                    break;
+                }
+            }
+
+            if (!encontrado) {
+                System.err.println("No se encontró un producto con el ID: " + productoActualizado.getId());
+                return false;
+            }
+
+            mapper.writerWithDefaultPrettyPrinter().writeValue(jsonFile, productos);
+            System.out.println("Producto editado correctamente.");
+            return true;
+
+        } catch (IllegalArgumentException e) {
+            System.err.println("Validación del producto falló: " + e.getMessage());
+            return false;
+
+        } catch (Exception e) {
+            System.err.println("Error al editar el producto: " + e.getMessage());
+            e.printStackTrace();
+            return false;
+        }
+    }
+
 }

@@ -1,544 +1,305 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
-import { getFacturas, createFactura, getPedidos } from '../data/api';
+import { getFacturas, createFactura, getPedidos, deleteFactura, updateFacturaEstado } from '../data/api';
 
-const props = defineProps({
-  currentUser: {
-    type: Object,
-    required: true,
-  },
-});
-
+const props = defineProps({ currentUser: { type: Object, required: true } });
 const esAdmin = computed(() => props.currentUser?.rol === 'ADMIN');
 
 // Datos
 const facturas = ref([]);
 const pedidos = ref([]);
+const loading = ref(false);
 
-const loadingFacturas = ref(false);
-const loadingPedidos = ref(false);
+// UI
+const modoAdmin = ref('ver'); 
+const grupoSeleccionado = ref(null);
+const ESTADOS = ['PENDIENTE', 'PAGADA', 'ANULADA'];
 
-const error = ref(null);
-const mensaje = ref(null);
+// --- MODAL ACTUALIZADO PARA SOPORTAR CANCELAR ---
+const modal = ref({ 
+  visible: false, 
+  tipo: 'info', 
+  titulo: '', 
+  mensaje: '', 
+  accion: null,
+  accionCancelar: null // Nuevo: Para revertir si se cancela
+});
 
-// Para ADMIN: modo ver/crear y pedido seleccionado
-const modoAdmin = ref('ver'); // 'ver' | 'crear'
-const pedidoSeleccionado = ref(null);
-
-const cerrarAlertas = () => {
-  error.value = null;
-  mensaje.value = null;
+const mostrarAlerta = (t, m, k='info') => { 
+  modal.value = { visible: true, tipo: k, titulo: t, mensaje: m, accion: null, accionCancelar: null }; 
 };
 
-// ----------- CARGAS -----------
+// Modificado para recibir callback de cancelación
+const mostrarConfirmacion = (t, m, cbAceptar, cbCancelar = null) => { 
+  modal.value = { 
+    visible: true, 
+    tipo: 'confirm', 
+    titulo: t, 
+    mensaje: m, 
+    accion: cbAceptar,
+    accionCancelar: cbCancelar 
+  }; 
+};
 
-const cargarFacturas = async () => {
-  loadingFacturas.value = true;
-  error.value = null;
+const cerrarModal = () => { 
+  modal.value.visible = false; 
+};
+
+const ejecutarAccionModal = () => { 
+  if(modal.value.accion) modal.value.accion(); 
+  cerrarModal(); 
+};
+
+const ejecutarCancelarModal = () => {
+  // Si hay una acción definida para cancelar (como revertir el estado), la ejecutamos
+  if(modal.value.accionCancelar) modal.value.accionCancelar();
+  cerrarModal();
+};
+
+// --- CARGA ---
+const cargarDatos = async () => {
+  loading.value = true;
   try {
-    facturas.value = await getFacturas();
+    const [rf, rp] = await Promise.all([ getFacturas(), esAdmin.value ? getPedidos() : Promise.resolve([]) ]);
+    facturas.value = Array.isArray(rf) ? rf : [];
+    pedidos.value = Array.isArray(rp) ? rp : [];
   } catch (e) {
-    error.value = e.message || 'Error al cargar facturas.';
-  } finally {
-    loadingFacturas.value = false;
-  }
+    mostrarAlerta('Error', 'No se cargaron los datos.', 'error');
+  } finally { loading.value = false; }
 };
 
-const cargarPedidos = async () => {
-  if (!esAdmin.value) return;
-  loadingPedidos.value = true;
-  error.value = null;
-  try {
-    pedidos.value = await getPedidos();
-  } catch (e) {
-    error.value = e.message || 'Error al cargar pedidos.';
-  } finally {
-    loadingPedidos.value = false;
-  }
-};
-
+// --- FILTROS ---
 const facturasFiltradas = computed(() => {
-  if (esAdmin.value) {
-    return facturas.value;
-  }
-  const correo = props.currentUser?.correo || '';
-  return facturas.value.filter((f) => f.clienteCorreo === correo);
+  if (esAdmin.value) return facturas.value;
+  return facturas.value.filter(f => f.clienteCorreo === props.currentUser.correo);
 });
 
-// ----------- ADMIN: CREAR FACTURA -----------
+const gruposPendientes = computed(() => {
+  if (!esAdmin.value) return [];
+  const codigosFacturados = new Set(facturas.value.map(f => f.codigoPedido));
+  const grupos = {};
+  pedidos.value.forEach(p => {
+    if (codigosFacturados.has(p.codigo)) return;
+    if (!grupos[p.codigo]) {
+      grupos[p.codigo] = {
+        codigo: p.codigo,
+        cliente: p.usuario,
+        totalGrupo: 0,
+        items: [],
+        idReferencia: p.id 
+      };
+    }
+    grupos[p.codigo].items.push(p);
+    grupos[p.codigo].totalGrupo += p.total;
+  });
+  return Object.values(grupos);
+});
 
-const seleccionarPedido = (pedido) => {
-  cerrarAlertas();
-  pedidoSeleccionado.value = pedido;
+// --- ACCIONES DE ESTADO (CON CONFIRMACIÓN) ---
+
+// 1. Esta función se llama al cambiar el Select
+const solicitarCambioEstado = (factura) => {
+  mostrarConfirmacion(
+    'Cambiar Estado', 
+    `¿Estás seguro de cambiar el estado a "${factura.estado}"?`, 
+    () => confirmarCambioEstadoReal(factura), // Si acepta
+    () => cargarDatos() // Si cancela: Recargamos para revertir el cambio visual del select
+  );
 };
 
-const confirmarFactura = async () => {
-  if (!pedidoSeleccionado.value) return;
+// 2. Esta función llama a la API si el usuario aceptó
+const confirmarCambioEstadoReal = async (fac) => {
+  try {
+    const ok = await updateFacturaEstado(fac.id, fac.estado);
+    if(ok) {
+      console.log("Estado actualizado correctamente");
+    } else {
+      throw new Error();
+    }
+  } catch {
+    mostrarAlerta('Error', 'Fallo al actualizar estado en el servidor.', 'error');
+    cargarDatos(); // Revertir si falla
+  }
+};
 
-  cerrarAlertas();
+const solicitarEliminar = (id) => mostrarConfirmacion('Eliminar', '¿Estás seguro de borrar esta factura?', () => eliminarLogica(id));
+
+const eliminarLogica = async (id) => {
+  if(await deleteFactura(id)) {
+    facturas.value = facturas.value.filter(f => f.id !== id);
+    mostrarAlerta('Eliminado', 'Factura borrada.', 'success');
+  } else mostrarAlerta('Error', 'No se pudo borrar.', 'error');
+};
+
+// --- CREAR FACTURA ---
+const seleccionarGrupo = (g) => { grupoSeleccionado.value = g; };
+const cancelarSeleccion = () => { grupoSeleccionado.value = null; };
+
+const confirmarCreacion = async () => {
+  if (!grupoSeleccionado.value) return;
+  
+  // Enviamos el objeto con el ID como pide el backend corregido
+  const payload = { id: grupoSeleccionado.value.idReferencia };
 
   try {
-    const ok = await createFactura(pedidoSeleccionado.value.id);
-    if (!ok) {
-      error.value = 'El backend no pudo registrar la factura.';
-      return;
+    const ok = await createFactura(payload); 
+    if (ok) {
+      mostrarAlerta('Éxito', 'Factura agrupada creada.', 'success');
+      grupoSeleccionado.value = null;
+      modoAdmin.value = 'ver';
+      await cargarDatos();
+    } else {
+      mostrarAlerta('Error', 'El backend rechazó la creación.', 'error');
     }
-
-    mensaje.value = 'Factura creada satisfactoriamente.';
-    pedidoSeleccionado.value = null;
-    modoAdmin.value = 'ver';
-
-    await Promise.all([cargarFacturas(), cargarPedidos()]);
-  } catch (e) {
-    error.value = e.message || 'Error al registrar la factura.';
-  }
+  } catch (e) { mostrarAlerta('Error', 'Fallo de red.', 'error'); }
 };
 
-const cancelarSeleccion = () => {
-  pedidoSeleccionado.value = null;
-};
-
-// ----------- MOUNT -----------
-
-onMounted(() => {
-  cargarFacturas();
-  cargarPedidos();
-});
+onMounted(cargarDatos);
 </script>
 
 <template>
   <section class="facturas-wrapper">
-    <div class="facturas-card">
-      <header class="facturas-header">
-        <h2 v-if="esAdmin">Gestión de facturas</h2>
-        <h2 v-else>Mis facturas</h2>
-
-        <p v-if="esAdmin">
-          Crea nuevas facturas a partir de pedidos y consulta el historial completo.
-        </p>
-        <p v-else>
-          Consulta las facturas generadas a partir de tus pedidos.
-        </p>
+    <div class="main-card">
+      <header class="header-card">
+        <h2>{{ esAdmin ? 'Gestión de Facturación' : 'Mis Facturas' }}</h2>
       </header>
 
-      <!-- Mensajes tipo modal -->
-      <transition name="fade">
-        <div v-if="error || mensaje" class="alert-overlay">
-          <div
-            class="alert-box"
-            :class="{ 'alert-error': error, 'alert-success': mensaje }"
-          >
-            <p class="alert-text">
-              {{ error || mensaje }}
-            </p>
-            <button type="button" class="alert-btn" @click="cerrarAlertas">
-              OK
-            </button>
-          </div>
-        </div>
-      </transition>
+      <div v-if="esAdmin" class="tabs-nav">
+        <button class="tab-btn" :class="{ active: modoAdmin === 'ver' }" @click="modoAdmin = 'ver'">
+          Historial ({{ facturasFiltradas.length }})
+        </button>
+        <button class="tab-btn" :class="{ active: modoAdmin === 'crear' }" @click="modoAdmin = 'crear'">
+          Por Facturar ({{ gruposPendientes.length }})
+        </button>
+      </div>
 
-      <!-- ADMIN -->
-      <template v-if="esAdmin">
-        <div class="fac-tabs">
-          <button
-            type="button"
-            class="fac-tab-btn"
-            :class="{ active: modoAdmin === 'ver' }"
-            @click="modoAdmin = 'ver'"
-          >
-            Ver facturas
-          </button>
-          <button
-            type="button"
-            class="fac-tab-btn"
-            :class="{ active: modoAdmin === 'crear' }"
-            @click="modoAdmin = 'crear'"
-          >
-            Crear factura
-          </button>
-        </div>
-
-        <!-- Panel VER FACTURAS -->
-        <div v-if="modoAdmin === 'ver'" class="fac-panel">
-          <h3 class="panel-title">Facturas registradas</h3>
-
-          <p v-if="loadingFacturas">Cargando facturas...</p>
-
-          <table v-else class="fac-table">
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>Pedido</th>
-                <th>Cliente</th>
-                <th>Color</th>
-                <th>Talla</th>
-                <th>Cantidad</th>
-                <th>Subtotal</th>
-                <th>IVA</th>
-                <th>Total</th>
-                <th>Fecha emisión</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="f in facturasFiltradas" :key="f.id">
-                <td>{{ f.id }}</td>
-                <td>#{{ f.idPedido }}</td>
-                <td>{{ f.clienteCorreo }}</td>
-                <td>{{ f.color }}</td>
-                <td>{{ f.talla }}</td>
-                <td>{{ f.cantidad }}</td>
-                <td>{{ Number(f.subtotal).toFixed(2) }} $</td>
-                <td>{{ Number(f.iva).toFixed(2) }} $</td>
-                <td>{{ Number(f.total).toFixed(2) }} $</td>
-                <td>{{ f.fechaEmision }}</td>
-              </tr>
-            </tbody>
-          </table>
-
-          <p v-if="!loadingFacturas && !facturasFiltradas.length">
-            No hay facturas registradas.
-          </p>
-        </div>
-
-        <!-- Panel CREAR FACTURA -->
-        <div v-else class="fac-panel">
-          <h3 class="panel-title">Crear factura desde pedido</h3>
-
-          <p class="fac-panel-text">
-            Selecciona un pedido realizado por un cliente para generar la
-            factura correspondiente.
-          </p>
-
-          <p v-if="loadingPedidos">Cargando pedidos...</p>
-
-          <table v-else class="fac-table">
-            <thead>
-              <tr>
-                <th>ID pedido</th>
-                <th>Cliente</th>
-                <th>Color</th>
-                <th>Talla</th>
-                <th>Cantidad</th>
-                <th>Precio unitario</th>
-                <th>Total pedido</th>
-                <th>Fecha</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="p in pedidos" :key="p.id">
-                <td>{{ p.id }}</td>
-                <td>{{ p.usuario }}</td>
-                <td>{{ p.color }}</td>
-                <td>{{ p.talla }}</td>
-                <td>{{ p.cantidad }}</td>
-                <td>{{ Number(p.precioUnitario).toFixed(2) }} $</td>
-                <td>{{ Number(p.total).toFixed(2) }} $</td>
-                <td>{{ p.fecha }}</td>
-                <td>
-                  <button
-                    type="button"
-                    class="btn-ambos"
-                    style="padding-inline: 0.9rem;"
-                    @click="seleccionarPedido(p)"
+      <div v-if="modoAdmin === 'ver'" class="panel-content">
+        <div v-if="loading" class="loading">Cargando...</div>
+        <div v-else-if="!facturasFiltradas.length" class="vacio-msg">Sin facturas.</div>
+        
+        <table v-else class="cotton-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Código Pedido</th>
+              <th>Cliente</th>
+              <th>Detalle</th>
+              <th>Total (+IVA)</th>
+              <th>Estado</th>
+              <th v-if="esAdmin">Acción</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="f in facturasFiltradas" :key="f.id">
+              <td class="dato">#{{ f.id }}</td>
+              <td class="resaltado">{{ f.codigoPedido }}</td>
+              <td class="dato">{{ f.clienteCorreo }}</td>
+              <td class="desc">{{ f.descripcion }}</td>
+              <td class="precio">${{ Number(f.total).toFixed(2) }}</td>
+              <td>
+                <div v-if="esAdmin">
+                  <select 
+                    v-model="f.estado" 
+                    class="select-estado" 
+                    :class="f.estado ? f.estado.toLowerCase() : ''" 
+                    @change="solicitarCambioEstado(f)"
                   >
-                    Seleccionar
-                  </button>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+                    <option v-for="e in ESTADOS" :key="e" :value="e">{{ e }}</option>
+                  </select>
+                </div>
+                <span v-else class="badge" :class="f.estado ? f.estado.toLowerCase() : ''">{{ f.estado }}</span>
+              </td>
+              <td v-if="esAdmin">
+                <button class="btn-eliminar" @click="solicitarEliminar(f.id)">Borrar</button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
 
-          <p v-if="!loadingPedidos && !pedidos.length">
-            No hay pedidos disponibles para facturar.
-          </p>
-
-          <div
-            v-if="pedidoSeleccionado"
-            class="fac-resumen-factura"
-          >
-            <h4>Resumen del pedido seleccionado</h4>
-            <p>
-              <strong>Pedido:</strong> #{{ pedidoSeleccionado.id }}
-            </p>
-            <p>
-              <strong>Cliente:</strong> {{ pedidoSeleccionado.usuario }}
-            </p>
-            <p>
-              <strong>Franela:</strong>
-              {{ pedidoSeleccionado.color }} - Talla {{ pedidoSeleccionado.talla }}
-            </p>
-            <p>
-              <strong>Cantidad:</strong> {{ pedidoSeleccionado.cantidad }}
-            </p>
-            <p>
-              <strong>Precio unitario:</strong>
-              {{ Number(pedidoSeleccionado.precioUnitario).toFixed(2) }} $
-            </p>
-            <p>
-              <strong>Total pedido:</strong>
-              {{ Number(pedidoSeleccionado.total).toFixed(2) }} $
-            </p>
-
-            <div class="fac-resumen-botones">
-              <button
-                type="button"
-                class="btn-ambos"
-                @click="confirmarFactura"
-              >
-                Confirmar factura
-              </button>
-              <button
-                type="button"
-                class="btn-ambos cancelar"
-                @click="cancelarSeleccion"
-              >
-                Cancelar
-              </button>
-            </div>
-          </div>
-        </div>
-      </template>
-
-      <!-- CLIENTE: solo ver facturas propias -->
-      <template v-else>
-        <div class="fac-panel">
-          <h3 class="panel-title">Mis facturas</h3>
-
-          <p v-if="loadingFacturas">Cargando facturas...</p>
-
-          <table v-else class="fac-table">
+      <div v-if="esAdmin && modoAdmin === 'crear'" class="panel-content">
+        <h3>Órdenes Pendientes</h3>
+        
+        <div v-if="!grupoSeleccionado">
+          <div v-if="!gruposPendientes.length" class="vacio-msg">Todo facturado.</div>
+          <table v-else class="cotton-table">
             <thead>
-              <tr>
-                <th>ID</th>
-                <th>Pedido</th>
-                <th>Color</th>
-                <th>Talla</th>
-                <th>Cantidad</th>
-                <th>Subtotal</th>
-                <th>IVA</th>
-                <th>Total</th>
-                <th>Fecha emisión</th>
-              </tr>
+              <tr><th>Código</th><th>Cliente</th><th>Items</th><th>Total</th><th>Acción</th></tr>
             </thead>
             <tbody>
-              <tr v-for="f in facturasFiltradas" :key="f.id">
-                <td>{{ f.id }}</td>
-                <td>#{{ f.idPedido }}</td>
-                <td>{{ f.color }}</td>
-                <td>{{ f.talla }}</td>
-                <td>{{ f.cantidad }}</td>
-                <td>{{ Number(f.subtotal).toFixed(2) }} $</td>
-                <td>{{ Number(f.iva).toFixed(2) }} $</td>
-                <td>{{ Number(f.total).toFixed(2) }} $</td>
-                <td>{{ f.fechaEmision }}</td>
+              <tr v-for="g in gruposPendientes" :key="g.codigo">
+                <td class="resaltado">{{ g.codigo }}</td>
+                <td class="dato">{{ g.cliente }}</td>
+                <td class="dato">{{ g.items.length }} productos</td>
+                <td class="precio">${{ Number(g.totalGrupo).toFixed(2) }}</td>
+                <td><button class="btn-small" @click="seleccionarGrupo(g)">Facturar Orden</button></td>
               </tr>
             </tbody>
           </table>
-
-          <p v-if="!loadingFacturas && !facturasFiltradas.length">
-            Todavía no tienes facturas registradas.
-          </p>
         </div>
-      </template>
+
+        <div v-else class="confirmacion-box">
+          <h4>Confirmar Facturación de Orden</h4>
+          <div class="detalles-factura">
+            <p><strong>Código:</strong> {{ grupoSeleccionado.codigo }}</p>
+            <p><strong>Cliente:</strong> {{ grupoSeleccionado.cliente }}</p>
+            <p><strong>Items:</strong> {{ grupoSeleccionado.items.length }}</p>
+            <p><strong>Total Base:</strong> ${{ grupoSeleccionado.totalGrupo.toFixed(2) }}</p>
+            <p class="nota-iva">* Se agregará el 16% de IVA al generar.</p>
+          </div>
+          <div class="botones-accion">
+            <button class="btn-cancelar" @click="cancelarSeleccion">Volver</button>
+            <button class="btn-confirmar" @click="confirmarCreacion">Generar Factura</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div v-if="modal.visible" class="modal-overlay">
+      <div class="modal-box" :class="modal.tipo">
+        <h3>{{ modal.titulo }}</h3>
+        <p>{{ modal.mensaje }}</p>
+        <div class="modal-btns">
+          <button v-if="modal.tipo === 'confirm'" class="btn-modal cancel" @click="ejecutarCancelarModal">Cancelar</button>
+          <button class="btn-modal ok" @click="ejecutarAccionModal">Aceptar</button>
+        </div>
+      </div>
     </div>
   </section>
 </template>
 
 <style scoped>
-.facturas-wrapper {
-  padding: 2.5rem 1rem 3rem;
-  display: flex;
-  justify-content: center;
-}
+.facturas-wrapper { padding: 2rem; display: flex; justify-content: center; color: #333; }
+.main-card { background: white; padding: 2rem; border-radius: 12px; width: 100%; max-width: 1100px; box-shadow: 0 5px 20px rgba(0,0,0,0.1); }
+.cotton-table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
+.cotton-table th { text-align: left; padding: 1rem; background: #f4f4f4; color: #1c262e; }
+.cotton-table td { padding: 1rem; border-bottom: 1px solid #eee; vertical-align: middle; }
+.dato { font-weight: 500; }
+.desc { font-size: 0.9rem; color: #666; }
+.resaltado { font-family: monospace; background: #eee; padding: 2px 6px; border-radius: 4px; font-weight: bold; }
+.precio { font-weight: 700; color: #27ae60; }
+.tabs-nav { display: flex; gap: 1rem; margin-bottom: 1rem; border-bottom: 1px solid #eee; padding-bottom: 1rem; }
+.tab-btn { background: none; border: none; padding: 0.5rem 1rem; cursor: pointer; color: #888; font-weight: 600; }
+.tab-btn.active { color: #1c262e; border-bottom: 2px solid #1c262e; }
+.btn-eliminar { background: #dc3545; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; }
+.btn-small { background: #1c262e; color: white; padding: 6px 12px; border-radius: 4px; cursor: pointer; border: none;}
+.confirmacion-box { background: #f9f9f9; padding: 2rem; text-align: center; border-radius: 8px; }
+.botones-accion { display: flex; gap: 1rem; justify-content: center; margin-top: 1rem; }
+.btn-confirmar { background: #27ae60; color: white; padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer; }
+.btn-cancelar { background: #ccc; padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer; }
+.select-estado { padding: 5px; border-radius: 4px; border: 1px solid #ccc; cursor: pointer; font-weight: bold; }
+/* Colores de estado */
+.pendiente { background: #fff3cd; color: #856404; } 
+.pagada { background: #d4edda; color: #155724; } 
+.anulada { background: #f8d7da; color: #721c24; }
+.select-estado.pendiente { background-color: #fff3cd; }
+.select-estado.pagada { background-color: #d4edda; }
+.select-estado.anulada { background-color: #f8d7da; }
 
-.facturas-card {
-  background: var(--cotton-light, #fcf5e9);
-  border-radius: 20px;
-  padding: 2rem 1.75rem;
-  max-width: 1100px;
-  width: 100%;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18);
-}
-
-.facturas-header {
-  margin-bottom: 1.5rem;
-}
-
-.facturas-header h2 {
-  font-size: 1.6rem;
-  margin-bottom: 0.3rem;
-  color: var(--cotton-dark, #1c262e);
-}
-
-.facturas-header p {
-  color: #555;
-  font-size: 0.95rem;
-}
-
-/* Tabs admin */
-
-.fac-tabs {
-  display: inline-flex;
-  gap: 0.5rem;
-  border-radius: 999px;
-  background: #e6e6e6;
-  padding: 0.2rem;
-  margin-bottom: 1.5rem;
-}
-
-.fac-tab-btn {
-  border: none;
-  background: transparent;
-  padding: 0.5rem 1rem;
-  border-radius: 999px;
-  cursor: pointer;
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: #555;
-  transition: background 0.15s ease, color 0.15s ease;
-}
-
-.fac-tab-btn.active {
-  background: #ffffff;
-  color: var(--cotton-dark, #1c262e);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
-}
-
-/* Panel y tablas */
-
-.fac-panel {
-  background: #ffffff;
-  border-radius: 16px;
-  padding: 1.5rem;
-  border: 1px solid #dddddd;
-}
-
-.panel-title {
-  font-size: 1.1rem;
-  margin-bottom: 0.75rem;
-  color: var(--cotton-dark, #1c262e);
-}
-
-.fac-panel-text {
-  font-size: 0.9rem;
-  color: #444;
-  margin-bottom: 0.9rem;
-}
-
-.fac-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.9rem;
-  margin-bottom: 1rem;
-  background: #ffffff;
-  border-radius: 12px;
-  overflow: hidden;
-}
-
-.fac-table thead {
-  background: #f0f0f0;
-}
-
-.fac-table th,
-.fac-table td {
-  padding: 0.55rem 0.6rem;
-  border-bottom: 1px solid #e4e4e4;
-  text-align: left;
-}
-
-.fac-table th {
-  color: #1c262e;
-  font-weight: 600;
-}
-
-.fac-table td {
-  color: #333333;
-}
-
-/* Resumen factura */
-
-.fac-resumen-factura {
-  margin-top: 1.2rem;
-  padding-top: 1rem;
-  border-top: 1px solid #e2e2e2;
-  font-size: 0.9rem;
-  color: #222;
-}
-
-.fac-resumen-factura h4 {
-  font-size: 1rem;
-  margin-bottom: 0.4rem;
-}
-
-.fac-resumen-factura p {
-  margin-bottom: 0.2rem;
-}
-
-.fac-resumen-botones {
-  display: flex;
-  gap: 0.5rem;
-  margin-top: 0.8rem;
-}
-
-.fac-resumen-botones .cancelar {
-  background: #6c757d;
-  box-shadow: none;
-}
-
-/* Modal de mensajes */
-
-.fade-enter-active,
-.fade-leave-active {
-  transition: opacity 0.15s ease;
-}
-.fade-enter-from,
-.fade-leave-to {
-  opacity: 0;
-}
-
-.alert-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.35);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 999;
-}
-
-.alert-box {
-  background: #ffffff;
-  padding: 1.4rem 1.6rem;
-  border-radius: 16px;
-  max-width: 420px;
-  width: 90%;
-  box-shadow: 0 18px 45px rgba(0, 0, 0, 0.3);
-  text-align: center;
-}
-
-.alert-text {
-  margin-bottom: 1rem;
-  font-size: 0.95rem;
-  color: #111827;
-}
-
-.alert-success .alert-text {
-  color: #14532d;
-}
-
-.alert-error .alert-text {
-  color: #7f1d1d;
-}
-
-.alert-btn {
-  border: none;
-  border-radius: 999px;
-  padding: 0.55rem 1.4rem;
-  background: var(--cotton-dark, #1b4965);
-  color: #ffffff;
-  font-weight: 600;
-  cursor: pointer;
-}
+.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center; z-index: 999; }
+.modal-box { background: white; padding: 2rem; border-radius: 8px; width: 350px; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
+.modal-btns { display: flex; gap: 10px; justify-content: center; margin-top: 1.5rem; }
+.btn-modal { padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
+.btn-modal.cancel { background: #e0e0e0; color: #333; }
+.btn-modal.ok { background: #1c262e; color: white; }
 </style>

@@ -1,0 +1,71 @@
+[ {
+  "id" : 1,
+  "usuario" : "juan@gmail.com",
+  "idProducto" : 0,
+  "color" : "Blanco",
+  "talla" : "L",
+  "cantidad" : 2,
+  "precioUnitario" : 10.5,
+  "total" : 21.0,
+  "codigo" : "ORD-8CD2A181"
+}, {
+  "id" : 2,
+  "usuario" : "juan@gmail.com",
+  "idProducto" : 0,
+  "color" : "Azul",
+  "talla" : "M",
+  "cantidad" : 1,
+  "precioUnitario" : 15.0,
+  "total" : 15.0,
+  "codigo" : "ORD-8CD2A181"
+}, {
+  "id" : 3,
+  "usuario" : "juan@gmail.com",
+  "idProducto" : 0,
+  "color" : "Blanco",
+  "talla" : "XL",
+  "cantidad" : 2,
+  "precioUnitario" : 4.4,
+  "total" : 8.8,
+  "codigo" : "ORD-8CD2A181"
+}, {
+  "id" : 4,
+  "usuario" : "juan@gmail.com",
+  "idProducto" : 0,
+  "color" : "Blanco",
+  "talla" : "L",
+  "cantidad" : 2,
+  "precioUnitario" : 10.5,
+  "total" : 21.0,
+  "codigo" : "ORD-1685B627"
+}, {
+  "id" : 5,
+  "usuario" : "juan@gmail.com",
+  "idProducto" : 0,
+  "color" : "Blanco",
+  "talla" : "L",
+  "cantidad" : 2,
+  "precioUnitario" : 10.5,
+  "total" : 21.0,
+  "codigo" : "ORD-92320DE2"
+}, {
+  "id" : 6,
+  "usuario" : "juan@gmail.com",
+  "idProducto" : 0,
+  "color" : "Azul",
+  "talla" : "M",
+  "cantidad" : 1,
+  "precioUnitario" : 15.0,
+  "total" : 15.0,
+  "codigo" : "ORD-92320DE2"
+}, {
+  "id" : 7,
+  "usuario" : "juan@gmail.com",
+  "idProducto" : 0,
+  "color" : "Blanco",
+  "talla" : "L",
+  "cantidad" : 2,
+  "precioUnitario" : 10.5,
+  "total" : 21.0,
+  "codigo" : "ORD-4E700BDA"
+} ]

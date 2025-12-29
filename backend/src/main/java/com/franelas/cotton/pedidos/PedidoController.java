@@ -1,11 +1,12 @@
 package com.franelas.cotton.pedidos;
 
 import org.springframework.web.bind.annotation.*;
-
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/pedidos")
+
+@CrossOrigin(origins = "http://localhost:5173")
 public class PedidoController {
 
     private final PedidoService pedidoService;
@@ -15,8 +16,8 @@ public class PedidoController {
     }
 
     @PostMapping
-    public boolean crearPedido(@RequestBody Pedido nuevoPedido) {
-        return pedidoService.registrarPedido(nuevoPedido);
+    public boolean crearPedidos(@RequestBody List<Pedido> nuevosPedidos) {
+        return pedidoService.registrarMultiplesPedidos(nuevosPedidos);
     }
 
     @GetMapping

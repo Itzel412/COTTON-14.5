@@ -31,14 +31,6 @@
   "telefono" : "041233894060",
   "rol" : "CLIENTE"
 }, {
-  "id" : 5,
-  "nombre" : "Valeria Martinez",
-  "correo" : "vale.o@correo.com",
-  "clave" : "Valeriam",
-  "direccion" : "Valencia",
-  "telefono" : "0412726267268",
-  "rol" : "CLIENTE"
-}, {
   "id" : 6,
   "nombre" : "Diego",
   "correo" : "diegom@gmail.com",

@@ -12,20 +12,21 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.UUID;
 
 @Service
 public class PedidoService {
 
-    private final String RUTA_JSON = "src/main/resources/data/pedidos.json";
+    // CAMBIO IMPORTANTE: Guardamos en la raíz del proyecto para asegurar persistencia
+    private final String RUTA_FOLDER = "data"; 
+    private final String RUTA_JSON = RUTA_FOLDER + "/pedidos.json";
+    
     private final ObjectMapper mapper = new ObjectMapper();
-
     private final ProductoService productoService;
 
     public PedidoService(ProductoService productoService) {
         this.productoService = productoService;
     }
-
-    private static final int MAX_CANTIDAD = 10;
 
     private static final List<String> TALLAS_VALIDAS =
             Arrays.asList("S", "M", "L", "XL");
@@ -33,152 +34,91 @@ public class PedidoService {
     private static final List<String> COLORES_VALIDOS =
             Arrays.asList("Blanco", "Negro", "Rojo", "Azul", "Amarillo", "Verde", "Morado");
 
+
+    private static final int MAX_CANTIDAD = 100;
+
     public List<Pedido> obtenerTodosLosPedidos() {
         try {
             File jsonFile = new File(RUTA_JSON);
-            if (!jsonFile.exists() || jsonFile.length() == 0) {
-                System.err.println("No hay pedidos registrados aún.");
-                return Collections.emptyList();
-            }
+            if (!jsonFile.exists() || jsonFile.length() == 0) return Collections.emptyList();
             return mapper.readValue(jsonFile, new TypeReference<List<Pedido>>() {});
         } catch (Exception e) {
-            System.err.println("Error al leer el archivo de pedidos: " + e.getMessage());
-            e.printStackTrace();
+            System.err.println("Aviso: No se pudo leer el historial de pedidos (puede estar vacío).");
             return Collections.emptyList();
         }
     }
-    public boolean registrarPedido(Pedido nuevoPedido) {
+
+    public boolean registrarMultiplesPedidos(List<Pedido> listaPedidos) {
+        if (listaPedidos == null || listaPedidos.isEmpty()) return false;
+
+        List<Producto> inventario = productoService.obtenerTodosLosProductos();
+        if (inventario.isEmpty()) {
+            System.err.println("❌ Error: Inventario vacío.");
+            return false;
+        }
+
+        String codigoUnico = "ORD-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+        boolean exitoTotal = true;
+        
+        for (Pedido p : listaPedidos) {
+            p.setCodigo(codigoUnico);
+            if (!procesarItemIndividual(p, inventario)) {
+                exitoTotal = false;
+            }
+        }
+
+        if (exitoTotal) {
+            productoService.guardarProductos(inventario);
+        }
+
+        return exitoTotal;
+    }
+
+    private boolean procesarItemIndividual(Pedido p, List<Producto> inventario) {
         try {
-            System.out.println("=== Intentando registrar pedido ===");
-            System.out.println("Usuario: " + nuevoPedido.getUsuario());
-            System.out.println("Color recibido: " + nuevoPedido.getColor());
-            System.out.println("Talla recibida: " + nuevoPedido.getTalla());
-            System.out.println("Cantidad recibida: " + nuevoPedido.getCantidad());
-            System.out.println("idProducto recibido: " + nuevoPedido.getIdProducto());
-
-            int cantidad = nuevoPedido.getCantidad();
-            if (cantidad <= 0 || cantidad > MAX_CANTIDAD) {
-                System.err.println("Cantidad inválida: " + cantidad);
+            if (p.getCantidad() <= 0 || p.getCantidad() > MAX_CANTIDAD) {
+                System.err.println("❌ Cantidad inválida: " + p.getCantidad());
                 return false;
             }
 
-            String talla = nuevoPedido.getTalla();
-            if (talla == null) {
-                System.err.println("Talla nula");
-                return false;
-            }
-            String tallaUpper = talla.toUpperCase();
-            if (!TALLAS_VALIDAS.contains(tallaUpper)) {
-                System.err.println("Talla inválida: " + talla);
-                return false;
-            }
-            nuevoPedido.setTalla(tallaUpper);
+            Producto productoEncontrado = null;
 
-            String color = nuevoPedido.getColor();
-            if (color == null) {
-                System.err.println("Color nulo");
-                return false;
+            if (p.getIdProducto() > 0) {
+                productoEncontrado = inventario.stream()
+                        .filter(prod -> prod.getId() == p.getIdProducto())
+                        .findFirst().orElse(null);
             }
 
-            String colorNormalizado = COLORES_VALIDOS.stream()
-                    .filter(c -> c.equalsIgnoreCase(color))
-                    .findFirst()
-                    .orElse(null);
+            if (productoEncontrado == null) {
+                String colorBuscado = p.getColor() != null ? p.getColor().trim() : "";
+                String tallaBuscada = p.getTalla() != null ? p.getTalla().trim() : "";
 
-            if (colorNormalizado == null) {
-                System.err.println("Color inválido: " + color);
-                return false;
-            }
-            nuevoPedido.setColor(colorNormalizado);
+                for (Producto prod : inventario) {
+                    String prodColor = prod.getColor() != null ? prod.getColor().trim() : "";
+                    String prodTalla = prod.getTalla() != null ? prod.getTalla().trim() : "";
 
-            List<Producto> productos = productoService.obtenerTodosLosProductos();
-            if (productos.isEmpty()) {
-                System.err.println("No hay productos en inventario.");
-                return false;
+                    if (prodColor.equalsIgnoreCase(colorBuscado) && prodTalla.equalsIgnoreCase(tallaBuscada)) {
+                        productoEncontrado = prod;
+                        break;
+                    }
+                }
             }
 
-            Producto producto = null;
-            if (nuevoPedido.getIdProducto() != 0) {
-                long idBuscado = nuevoPedido.getIdProducto();
-                producto = productos.stream()
-                        .filter(p -> p.getId() == idBuscado)
-                        .findFirst()
-                        .orElse(null);
-            }
+            if (productoEncontrado == null) return false;
 
-            if (producto == null) {
-                producto = productos.stream()
-                        .filter(p ->
-                                p.getColor() != null &&
-                                        p.getTalla() != null &&
-                                        p.getColor().equalsIgnoreCase(colorNormalizado) &&
-                                        p.getTalla().equalsIgnoreCase(tallaUpper)
-                        )
-                        .findFirst()
-                        .orElse(null);
-            }
+            if (productoEncontrado.getStock() < p.getCantidad()) return false;
 
-            if (producto == null) {
-                System.err.println(
-                        "No existe producto con id " + nuevoPedido.getIdProducto() +
-                                " o con combinación color/talla " + colorNormalizado + " - " + tallaUpper
-                );
-                return false;
-            }
+            productoEncontrado.setStock(productoEncontrado.getStock() - p.getCantidad());
 
-            System.out.println("Producto encontrado en inventario: id=" + producto.getId()
-                    + ", color=" + producto.getColor()
-                    + ", talla=" + producto.getTalla()
-                    + ", stock actual=" + producto.getStock());
+            p.setIdProducto(productoEncontrado.getId());
+            p.setPrecioUnitario(productoEncontrado.getPrecio());
+            p.setTotal(p.getCantidad() * productoEncontrado.getPrecio());
 
-            if (cantidad > producto.getStock()) {
-                System.err.println("Stock insuficiente para el producto (id="
-                        + producto.getId() + "), stock=" + producto.getStock()
-                        + ", cantidad solicitada=" + cantidad);
-                return false;
-            }
+            guardarPedidoEnJson(p);
 
-            int stockNuevo = producto.getStock() - cantidad;
-            producto.setStock(stockNuevo);
-
-            System.out.println("Nuevo stock para producto id=" + producto.getId()
-                    + ": " + stockNuevo);
-
-            boolean inventarioOk = productoService.guardarProductos(productos);
-            if (!inventarioOk) {
-                System.err.println("No se pudo actualizar el inventario. Pedido cancelado.");
-                return false;
-            }
-
-            nuevoPedido.setPrecioUnitario(producto.getPrecio());
-            nuevoPedido.setTotal(cantidad * producto.getPrecio());
-            nuevoPedido.setIdProducto(producto.getId()); // por si vino en 0
-
-            File jsonFile = new File(RUTA_JSON);
-            List<Pedido> pedidos;
-
-            if (jsonFile.exists() && jsonFile.length() > 0) {
-                pedidos = mapper.readValue(jsonFile, new TypeReference<List<Pedido>>() {});
-            } else {
-                pedidos = new ArrayList<>();
-            }
-
-            if (nuevoPedido.getId() == 0) {
-                long nextId = pedidos.stream()
-                        .mapToLong(Pedido::getId)
-                        .max()
-                        .orElse(0) + 1;
-                nuevoPedido.setId(nextId);
-            }
-
-            pedidos.add(nuevoPedido);
-            mapper.writerWithDefaultPrettyPrinter().writeValue(jsonFile, pedidos);
-
-            System.out.println("Pedido registrado exitosamente con ID: " + nuevoPedido.getId());
             return true;
 
         } catch (Exception e) {
-            System.err.println("Error al registrar pedido: " + e.getMessage());
             e.printStackTrace();
             return false;
         }
@@ -295,6 +235,28 @@ public class PedidoService {
             System.err.println("Error al actualizar pedido: " + e.getMessage());
             e.printStackTrace();
             return false;
+        }
+    }
+
+    private void guardarPedidoEnJson(Pedido nuevoPedido) {
+        try {
+            File folder = new File(RUTA_FOLDER);
+            if (!folder.exists()) folder.mkdirs(); // Crea la carpeta "data" si no existe
+
+            File jsonFile = new File(RUTA_JSON);
+            List<Pedido> pedidos = new ArrayList<>();
+            
+            if (jsonFile.exists() && jsonFile.length() > 0) {
+                pedidos = new ArrayList<>(Arrays.asList(mapper.readValue(jsonFile, Pedido[].class)));
+            }
+
+            long nextId = pedidos.stream().mapToLong(Pedido::getId).max().orElse(0) + 1;
+            nuevoPedido.setId(nextId);
+
+            pedidos.add(nuevoPedido);
+            mapper.writerWithDefaultPrettyPrinter().writeValue(jsonFile, pedidos);
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 }
