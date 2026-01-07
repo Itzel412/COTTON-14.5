@@ -8,14 +8,14 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 @Service
 public class ProductoService {
 
     private final String RUTA_JSON = "src/main/resources/data/productos.json";
-
-
     private final ObjectMapper mapper = new ObjectMapper();
 
     public List<Producto> obtenerTodosLosProductos() {
@@ -27,7 +27,15 @@ public class ProductoService {
                 return Collections.emptyList();
             }
 
-            return mapper.readValue(jsonFile, new TypeReference<List<Producto>>() {});
+            List<Producto> productos = mapper.readValue(jsonFile, new TypeReference<List<Producto>>() {});
+
+            boolean changed = normalizarIdsSiHaceFalta(productos);
+            if (changed) {
+                guardarProductos(productos);
+            }
+
+            return productos;
+
         } catch (Exception e) {
             System.err.println("Error al leer el archivo JSON de productos: " + e.getMessage());
             e.printStackTrace();
@@ -49,14 +57,14 @@ public class ProductoService {
         }
 
         List<String> tallasValidas = Arrays.asList("S", "M", "L", "XL");
-        if (p.getTalla() == null ||
-                !tallasValidas.contains(p.getTalla().toUpperCase())) {
+        if (p.getTalla() == null || !tallasValidas.contains(p.getTalla().toUpperCase())) {
             throw new IllegalArgumentException("La talla debe ser S, M, L o XL");
         }
 
         List<String> coloresValidos = Arrays.asList(
                 "Blanco", "Negro", "Rojo", "Azul", "Amarillo", "Verde", "Morado"
         );
+
         boolean colorOk = false;
         if (p.getColor() != null) {
             for (String c : coloresValidos) {
@@ -74,6 +82,45 @@ public class ProductoService {
         p.setTalla(p.getTalla().toUpperCase());
     }
 
+    private long obtenerMaxId(List<Producto> productos) {
+        long max = 0;
+        for (Producto p : productos) {
+            if (p != null && p.getId() > max) {
+                max = p.getId();
+            }
+        }
+        return max;
+    }
+
+    private boolean normalizarIdsSiHaceFalta(List<Producto> productos) {
+        if (productos == null || productos.isEmpty()) {
+            return false;
+        }
+
+        boolean changed = false;
+        Set<Long> usados = new HashSet<>();
+
+        long maxId = obtenerMaxId(productos);
+
+        for (Producto p : productos) {
+            if (p == null) continue;
+
+            long id = p.getId();
+            boolean invalido = id <= 0;
+            boolean duplicado = !invalido && usados.contains(id);
+
+            if (invalido || duplicado) {
+                maxId++;
+                p.setId(maxId);
+                changed = true;
+            }
+
+            usados.add(p.getId());
+        }
+
+        return changed;
+    }
+
     public boolean registrarProducto(Producto nuevoProducto) {
         try {
             validarProducto(nuevoProducto);
@@ -86,6 +133,14 @@ public class ProductoService {
             } else {
                 productos = new ArrayList<>();
                 System.err.println("Archivo no encontrado o vacío, creando lista nueva: " + RUTA_JSON);
+            }
+
+            if (nuevoProducto.getId() <= 0) {
+                long maxId = 0;
+                for (Producto p : productos) {
+                    if (p.getId() > maxId) maxId = p.getId();
+                }
+                nuevoProducto.setId(maxId + 1);
             }
 
             productos.add(nuevoProducto);
@@ -120,6 +175,11 @@ public class ProductoService {
 
     public boolean eliminarProducto(long id) {
         try {
+            if (id <= 0) {
+                System.err.println("Error: El ID es inválido para eliminar: " + id);
+                return false;
+            }
+
             File jsonFile = new File(RUTA_JSON);
 
             if (!jsonFile.exists() || jsonFile.length() == 0) {
@@ -157,6 +217,11 @@ public class ProductoService {
 
     public boolean editarProducto(Producto productoActualizado) {
         try {
+            if (productoActualizado == null || productoActualizado.getId() <= 0) {
+                System.err.println("Error: El ID es obligatorio para editar.");
+                return false;
+            }
+
             validarProducto(productoActualizado);
 
             File jsonFile = new File(RUTA_JSON);
@@ -198,5 +263,4 @@ public class ProductoService {
             return false;
         }
     }
-
 }

@@ -1,59 +1,42 @@
 package com.franelas.cotton.inventario;
-import org.springframework.web.bind.annotation.*; // (1. Importa todas las anotaciones web)
 
+import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
-@RestController // (2. Le dice a Spring: Esta clase es un Controlador REST, devuelve JSON)
-@RequestMapping("/api/inventario") // (3. La URL base para todos los métodos de esta clase)
+@CrossOrigin(origins = {
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+        "http://localhost:5174",
+        "http://127.0.0.1:5174"
+})
+@RestController
+@RequestMapping("/api/inventario")
 public class ProductoController {
 
-    // (4. El controlador necesita al servicio para funcionar)
     private final ProductoService productoService;
 
-    // (5. Inyección de Dependencias por Constructor - La mejor práctica)
-    // Spring ve esto y automáticamente "inyecta" una instancia de ProductoService aquí.
     public ProductoController(ProductoService productoService) {
         this.productoService = productoService;
     }
 
-    /**
-     * HISTORIA DE USUARIO: "Consultar Productos"
-     * Esto expone el método del servicio en una URL.
-     * URL: GET http://localhost:8080/api/inventario/productos
-     */
-    @GetMapping("/productos") // (6. Mapea peticiones GET a esta URL)
+    @GetMapping("/productos")
     public List<Producto> consultarTodosLosProductos() {
-        // (7. Llama al servicio para obtener los datos y los devuelve como JSON)
         return productoService.obtenerTodosLosProductos();
     }
 
-    /**
-     * HISTORIA DE USUARIO: "Registrar Producto"
-     * (Lo dejaremos para después, pero ya creamos la URL)
-     * URL: POST http://localhost:8080/api/inventario/productos
-     */
-    @PostMapping("/productos") // (8. Mapea peticiones POST a esta URL)
+    @PostMapping("/productos")
     public boolean registrarProducto(@RequestBody Producto nuevoProducto) {
-        // (9. @RequestBody toma el JSON del frontend y lo convierte en un objeto Producto)
         return productoService.registrarProducto(nuevoProducto);
     }
 
-    /**
-     * HISTORIA DE USUARIO: "Eliminar Producto"
-     * URL: DELETE http://localhost:8080/api/inventario/productos/{id}
-     */
+    @PutMapping("/productos/{id}")
+    public boolean editarProducto(@PathVariable long id, @RequestBody Producto productoActualizado) {
+        productoActualizado.setId(id);
+        return productoService.editarProducto(productoActualizado);
+    }
+
     @DeleteMapping("/productos/{id}")
     public boolean eliminarProducto(@PathVariable long id) {
         return productoService.eliminarProducto(id);
     }
-
-    /**
-     * HISTORIA DE USUARIO: "Editar Producto"
-     * URL: PUT http://localhost:8080/api/inventario/productos
-     */
-    @PutMapping("/productos")
-    public boolean editarProducto(@RequestBody Producto productoActualizado) {
-        return productoService.editarProducto(productoActualizado);
-    }
-
 }

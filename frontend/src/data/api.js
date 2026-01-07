@@ -1,6 +1,3 @@
-// ==========================================
-// 1. CONFIGURACIÓN GENERAL (URLS BASE)
-// ==========================================
 const API_BASE_URL = 'http://localhost:8080/api/perfil';
 const INVENTARIO_BASE_URL = 'http://localhost:8080/api/inventario';
 const PEDIDOS_BASE_URL = 'http://localhost:8080/api/pedidos';
@@ -102,6 +99,39 @@ export async function createProducto(producto) {
   }
 
   return await response.json();
+}
+
+export async function updateProducto(producto) {
+  const id = producto?.id;
+  if (!id) throw new Error('El producto no tiene id para editar');
+
+  const response = await fetch(`${INVENTARIO_BASE_URL}/productos/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(producto),
+  });
+
+  if (!response.ok) {
+    const texto = await response.text().catch(() => '');
+    throw new Error(texto || 'Error al editar el producto');
+  }
+
+  return await response.json(); // boolean
+}
+
+export async function deleteProducto(id) {
+  if (!id) throw new Error('El id es obligatorio para eliminar');
+
+  const response = await fetch(`${INVENTARIO_BASE_URL}/productos/${id}`, {
+    method: 'DELETE',
+  });
+
+  if (!response.ok) {
+    const texto = await response.text().catch(() => '');
+    throw new Error(texto || 'Error al eliminar el producto');
+  }
+
+  return await response.json(); // boolean
 }
 
 // ==========================================
