@@ -6,26 +6,12 @@
   "precio" : 10.5,
   "stock" : 49
 }, {
-  "id" : 2,
-  "nombre" : null,
-  "color" : "Blanco",
-  "talla" : "L",
-  "precio" : 10.5,
-  "stock" : 7
-}, {
   "id" : 3,
   "nombre" : null,
   "color" : "Azul",
   "talla" : "M",
   "precio" : 15.0,
   "stock" : 17
-}, {
-  "id" : 4,
-  "nombre" : null,
-  "color" : "Rojo",
-  "talla" : "S",
-  "precio" : 12.4,
-  "stock" : 0
 }, {
   "id" : 5,
   "nombre" : null,
@@ -39,5 +25,5 @@
   "color" : "Negro",
   "talla" : "S",
   "precio" : 12.0,
-  "stock" : 3
+  "stock" : 8
 } ]

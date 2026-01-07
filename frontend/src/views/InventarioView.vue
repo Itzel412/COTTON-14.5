@@ -631,9 +631,9 @@ onMounted(() => {
 }
 
 .icon-edit {
-  background: #6c757d;
+  background: #e9cba7;
 }
 .icon-delete {
-  background: #dc3545;
+  background: #d1360f;
 }
 </style>

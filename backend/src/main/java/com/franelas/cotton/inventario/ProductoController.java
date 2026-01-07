@@ -3,12 +3,6 @@ package com.franelas.cotton.inventario;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
-@CrossOrigin(origins = {
-        "http://localhost:5173",
-        "http://127.0.0.1:5173",
-        "http://localhost:5174",
-        "http://127.0.0.1:5174"
-})
 @RestController
 @RequestMapping("/api/inventario")
 public class ProductoController {
@@ -29,14 +23,14 @@ public class ProductoController {
         return productoService.registrarProducto(nuevoProducto);
     }
 
-    @PutMapping("/productos/{id}")
-    public boolean editarProducto(@PathVariable long id, @RequestBody Producto productoActualizado) {
-        productoActualizado.setId(id);
-        return productoService.editarProducto(productoActualizado);
+    @DeleteMapping("/productos/{id}")
+    public boolean eliminarProducto(@PathVariable("id") long id) {
+        return productoService.eliminarProducto(id);
     }
 
-    @DeleteMapping("/productos/{id}")
-    public boolean eliminarProducto(@PathVariable long id) {
-        return productoService.eliminarProducto(id);
+    @PutMapping("/productos/{id}")
+    public boolean editarProducto(@PathVariable("id") long id, @RequestBody Producto productoActualizado) {
+        productoActualizado.setId(id);
+        return productoService.editarProducto(productoActualizado);
     }
 }
