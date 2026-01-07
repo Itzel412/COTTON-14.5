@@ -28,7 +28,6 @@ const nuevoProducto = ref({
 const COLORES = ['Blanco', 'Negro', 'Rojo', 'Azul', 'Amarillo', 'Verde', 'Morado'];
 const TALLAS = ['S', 'M', 'L', 'XL'];
 
-// -------- Modal de "warning" / OK ----------
 const dialogVisible = ref(false);
 const dialogMessage = ref('');
 
@@ -39,7 +38,6 @@ const abrirDialogo = (msg) => {
 const cerrarDialogo = () => {
   dialogVisible.value = false;
 };
-// -------------------------------------------
 
 const cargarProductos = async () => {
   if (!esAdmin.value) return;
@@ -55,27 +53,37 @@ const cargarProductos = async () => {
   }
 };
 
-// ========= ELIMINAR =========
-const eliminarProducto = async (p) => {
+const deleteVisible = ref(false);
+const productoAEliminar = ref(null);
+
+const abrirEliminar = (p) => {
   if (!p?.id) {
     abrirDialogo('No se puede eliminar: el producto no tiene ID.');
     return;
   }
+  error.value = null;
+  productoAEliminar.value = p;
+  deleteVisible.value = true;
+};
 
-  const confirmado = window.confirm(
-    `¿Seguro que deseas eliminar este producto?\n\nColor: ${p.color}\nTalla: ${p.talla}\nPrecio: ${Number(p.precio).toFixed(2)} $\nStock: ${p.stock}`
-  );
-  if (!confirmado) return;
+const cerrarEliminar = () => {
+  deleteVisible.value = false;
+  productoAEliminar.value = null;
+};
+
+const confirmarEliminar = async () => {
+  if (!productoAEliminar.value?.id) return;
 
   error.value = null;
   try {
-    const ok = await deleteProducto(p.id);
+    const ok = await deleteProducto(productoAEliminar.value.id);
 
     if (!ok) {
       error.value = 'El backend no pudo eliminar el producto.';
       return;
     }
 
+    cerrarEliminar();
     abrirDialogo('Producto eliminado satisfactoriamente.');
     await cargarProductos();
   } catch (e) {
@@ -83,7 +91,6 @@ const eliminarProducto = async (p) => {
   }
 };
 
-// ========= CREAR (igual que antes) =========
 const prepararConfirmacionProducto = () => {
   error.value = null;
   mensajeProducto.value = null;
@@ -128,7 +135,6 @@ const registrarProductoConfirmado = async () => {
 
     abrirDialogo('Prenda registrada satisfactoriamente.');
 
-    // reseteamos el formulario
     nuevoProducto.value = { color: 'Blanco', talla: 'M', precio: 0, stock: 0 };
     productoParaConfirmar.value = null;
     pasoProducto.value = 'form';
@@ -145,7 +151,6 @@ const cancelarConfirmacion = () => {
   abrirDialogo('Se canceló el registro. No se guardaron cambios.');
 };
 
-// ========= EDITAR INLINE (MODAL) =========
 const editVisible = ref(false);
 const editForm = ref({
   id: null,
@@ -260,7 +265,6 @@ onMounted(() => {
         </button>
       </div>
 
-      <!-- VER PRODUCTOS -->
       <div v-if="modoAdmin === 'ver'" class="inv-panel">
         <h3 class="panel-title">Productos en inventario</h3>
 
@@ -273,7 +277,6 @@ onMounted(() => {
               <th>Talla</th>
               <th>Precio</th>
               <th>Stock</th>
-              <!-- header en blanco -->
               <th class="col-acciones"></th>
             </tr>
           </thead>
@@ -298,7 +301,7 @@ onMounted(() => {
                   <button
                     type="button"
                     class="icon-btn icon-delete"
-                    @click="eliminarProducto(p)"
+                    @click="abrirEliminar(p)"
                     aria-label="Eliminar producto"
                     title="Eliminar"
                   >
@@ -318,7 +321,6 @@ onMounted(() => {
         </p>
       </div>
 
-      <!-- REGISTRAR PRODUCTO (igual que antes) -->
       <div v-else class="inv-panel">
         <h3 class="panel-title">Registrar nuevo producto</h3>
 
@@ -379,47 +381,73 @@ onMounted(() => {
       </div>
     </div>
 
-    <!-- MODAL EDICIÓN (misma pantalla “Ver productos”) -->
-    <div v-if="editVisible" class="inv-dialog-backdrop">
-      <div class="inv-dialog edit-dialog">
-        <h3 style="margin-bottom: 0.75rem; color: #1c262e;">Editar producto</h3>
+    <div v-if="deleteVisible" class="inv-dialog-backdrop">
+      <div class="inv-dialog edit-dialog delete-dialog">
+        <form @submit.prevent="confirmarEliminar">
+          <h3 style="margin-bottom: 0.75rem; color: #1c262e;">Eliminar producto</h3>
 
-        <div class="form-row">
-          <div class="form-group">
-            <label>Color</label>
-            <select v-model="editForm.color">
-              <option v-for="c in COLORES" :key="c" :value="c">{{ c }}</option>
-            </select>
+          <p style="color:#1c262e; margin: 0 0 0.75rem;">
+            ¿Seguro que deseas eliminar este producto?
+          </p>
+
+          <p v-if="productoAEliminar" style="color:#555; margin: 0 0 1rem; font-size: 0.95rem;">
+            <strong style="color:#1c262e;">{{ productoAEliminar.color }}</strong>,
+            talla <strong style="color:#1c262e;">{{ productoAEliminar.talla }}</strong>
+          </p>
+
+          <div class="confirm-buttons" style="justify-content: center;">
+            <button class="btn-ambos btn-danger" type="submit">Eliminar</button>
+            <button class="btn-ambos btn-secondary" type="button" @click="cerrarEliminar">
+              Cancelar
+            </button>
           </div>
-
-          <div class="form-group">
-            <label>Talla</label>
-            <select v-model="editForm.talla">
-              <option v-for="t in TALLAS" :key="t" :value="t">{{ t }}</option>
-            </select>
-          </div>
-        </div>
-
-        <div class="form-row">
-          <div class="form-group">
-            <label>Precio (USD)</label>
-            <input type="number" min="0" step="0.01" v-model.number="editForm.precio" />
-          </div>
-
-          <div class="form-group">
-            <label>Stock</label>
-            <input type="number" min="0" v-model.number="editForm.stock" />
-          </div>
-        </div>
-
-        <div class="confirm-buttons" style="justify-content: center;">
-          <button class="btn-ambos" @click="guardarEdicion">Guardar</button>
-          <button class="btn-ambos btn-secondary" @click="cerrarEditar">Cancelar</button>
-        </div>
+        </form>
       </div>
     </div>
 
-    <!-- MODAL DE MENSAJE -->
+    <div v-if="editVisible" class="inv-dialog-backdrop">
+      <div class="inv-dialog edit-dialog">
+        <form @submit.prevent="guardarEdicion">
+          <h3 style="margin-bottom: 0.75rem; color: #1c262e;">Editar producto</h3>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Color</label>
+              <select v-model="editForm.color">
+                <option v-for="c in COLORES" :key="c" :value="c">{{ c }}</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label>Talla</label>
+              <select v-model="editForm.talla">
+                <option v-for="t in TALLAS" :key="t" :value="t">{{ t }}</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Precio (USD)</label>
+              <input type="number" min="0" step="0.01" v-model.number="editForm.precio" />
+            </div>
+
+            <div class="form-group">
+              <label>Stock</label>
+              <input type="number" min="0" v-model.number="editForm.stock" />
+            </div>
+          </div>
+
+          <div class="confirm-buttons" style="justify-content: center;">
+            <button class="btn-ambos" type="submit">Guardar</button>
+            <button class="btn-ambos btn-secondary" type="button" @click="cerrarEditar">
+              Cancelar
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
     <div v-if="dialogVisible" class="inv-dialog-backdrop">
       <div class="inv-dialog">
         <p>{{ dialogMessage }}</p>
@@ -513,7 +541,6 @@ onMounted(() => {
   gap: 1rem;
 }
 
-/* tabla */
 .inv-table {
   width: 100%;
   border-collapse: collapse;
@@ -540,7 +567,6 @@ onMounted(() => {
   color: #333333;
 }
 
-/* bloque de confirmación */
 .confirm-block {
   color: #1c262e;
 }
@@ -561,7 +587,6 @@ onMounted(() => {
   box-shadow: none;
 }
 
-/* modal */
 .inv-dialog-backdrop {
   position: fixed;
   inset: 0;
@@ -585,13 +610,16 @@ onMounted(() => {
   color: #1c262e;
 }
 
-/* modal edición un poco más ancho */
 .edit-dialog {
   max-width: 520px;
   text-align: left;
 }
 
-/* ===== Columna que se encoge + botones con imagen ===== */
+.delete-dialog {
+  max-width: 520px;
+  text-align: left;
+}
+
 .inv-table th.col-acciones,
 .inv-table td.col-acciones {
   width: 1%;
@@ -634,6 +662,10 @@ onMounted(() => {
   background: #e9cba7;
 }
 .icon-delete {
+  background: #d1360f;
+}
+
+.btn-danger {
   background: #d1360f;
 }
 </style>

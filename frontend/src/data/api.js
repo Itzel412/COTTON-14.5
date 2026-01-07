@@ -4,9 +4,7 @@ const PEDIDOS_BASE_URL = 'http://localhost:8080/api/pedidos';
 const FACTURAS_BASE_URL = 'http://localhost:8080/api/facturas';
 const RECLAMOS_BASE_URL = 'http://localhost:8080/api/reclamos';
 
-// ==========================================
-// 2. GESTIÓN DE USUARIOS (LOGIN/REGISTRO)
-// ==========================================
+//  GESTIÓN DE USUARIOS (LOGIN/REGISTRO)
 
 export async function loginRequest(email, password) {
   const response = await fetch(`${API_BASE_URL}/login`, {
@@ -75,9 +73,7 @@ export async function registerClientePerfil(datos) {
   return await loginRequest(payload.correo, payload.clave);
 }
 
-// ==========================================
 // 3. INVENTARIO (PRODUCTOS)
-// ==========================================
 
 export async function getProductos() {
   const response = await fetch(`${INVENTARIO_BASE_URL}/productos`);
@@ -116,7 +112,7 @@ export async function updateProducto(producto) {
     throw new Error(texto || 'Error al editar el producto');
   }
 
-  return await response.json(); // boolean
+  return await response.json(); 
 }
 
 export async function deleteProducto(id) {
@@ -131,12 +127,10 @@ export async function deleteProducto(id) {
     throw new Error(texto || 'Error al eliminar el producto');
   }
 
-  return await response.json(); // boolean
+  return await response.json(); 
 }
 
-// ==========================================
-// 4. PEDIDOS (CARRITO)
-// ==========================================
+// 4. PEDIDOS 
 
 export async function createPedido(listaDePedidos) {
   const response = await fetch(PEDIDOS_BASE_URL, {
@@ -160,9 +154,7 @@ export async function getPedidos() {
   return await response.json();
 }
 
-// ==========================================
-// 5. FACTURAS (SPRINT 2)
-// ==========================================
+// 5. FACTURAS
 
 export async function getFacturas() {
   const response = await fetch(FACTURAS_BASE_URL);
@@ -172,11 +164,7 @@ export async function getFacturas() {
   return await response.json();
 }
 
-// --- AQUÍ ESTABA EL ERROR, ESTA ES LA VERSIÓN CORREGIDA ---
 export async function createFactura(datos) {
-  // datos ya viene como { id: 1 } desde el Vue.
-  // NO debemos hacer { idPedido: datos } ni nada extra.
-  // Lo enviamos directo.
   
   const response = await fetch(FACTURAS_BASE_URL, {
     method: 'POST',
@@ -184,7 +172,7 @@ export async function createFactura(datos) {
         'Content-Type': 'application/json',
         'Accept': 'application/json'
     },
-    body: JSON.stringify(datos), // Enviamos DIRECTAMENTE el objeto { id: ... }
+    body: JSON.stringify(datos), 
   });
 
   if (!response.ok) {
@@ -221,9 +209,7 @@ export async function updateFacturaEstado(id, nuevoEstado) {
   return await response.json();
 }
 
-// ==========================================
 // 6. RECLAMOS
-// ==========================================
 
 export async function getReclamos() {
   const response = await fetch(RECLAMOS_BASE_URL);
