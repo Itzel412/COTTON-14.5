@@ -239,7 +239,6 @@ onMounted(() => {
     <div class="inventario-card" v-if="esAdmin">
       <header class="inventario-header">
         <h2>Gestión de inventario</h2>
-        <p>Registra nuevas franelas y consulta el inventario actual.</p>
       </header>
 
       <div v-if="error" class="inv-alert error">

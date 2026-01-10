@@ -26,4 +26,11 @@
   "talla" : "M",
   "precio" : 9.9,
   "stock" : 9
+}, {
+  "id" : 8,
+  "nombre" : null,
+  "color" : "Amarillo",
+  "talla" : "S",
+  "precio" : 10.0,
+  "stock" : 8
 } ]

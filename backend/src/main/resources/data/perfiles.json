@@ -24,14 +24,6 @@
   "rol" : "ADMIN"
 }, {
   "id" : 4,
-  "nombre" : "Gabriel Canino",
-  "correo" : "canino1@correo.com",
-  "clave" : "gabowe",
-  "direccion" : "El paraiso",
-  "telefono" : "041233894060",
-  "rol" : "CLIENTE"
-}, {
-  "id" : 6,
   "nombre" : "Diego",
   "correo" : "diegom@gmail.com",
   "clave" : "12345",
@@ -39,7 +31,7 @@
   "telefono" : "041257653246782",
   "rol" : "CLIENTE"
 }, {
-  "id" : 7,
+  "id" : 5,
   "nombre" : "Carlos Belfort",
   "correo" : "carlosi@gmail.com",
   "clave" : "abcdef",
