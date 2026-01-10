@@ -4,7 +4,7 @@
   "color" : "Azul",
   "talla" : "M",
   "precio" : 15.0,
-  "stock" : 19
+  "stock" : 18
 }, {
   "id" : 5,
   "nombre" : null,
@@ -18,19 +18,19 @@
   "color" : "Negro",
   "talla" : "S",
   "precio" : 12.0,
-  "stock" : 8
+  "stock" : 6
 }, {
   "id" : 7,
   "nombre" : null,
   "color" : "Morado",
   "talla" : "M",
   "precio" : 9.9,
-  "stock" : 9
+  "stock" : 6
 }, {
   "id" : 8,
   "nombre" : null,
   "color" : "Amarillo",
   "talla" : "S",
   "precio" : 10.0,
-  "stock" : 8
+  "stock" : 7
 } ]

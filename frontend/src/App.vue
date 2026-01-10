@@ -1,25 +1,18 @@
 <script setup>
 import { ref } from 'vue';
-
-// --- 1. IMPORTACIÓN DE VISTAS ---
 import LoginView from './views/LoginView.vue';
 import DashboardView from './views/DashboardView.vue';
 import PerfilView from './views/PerfilView.vue';
 import InventarioView from './views/InventarioView.vue';
-import PedidosView from './views/PedidosView.vue'; 
-import FacturasView from './views/FacturasView.vue'; 
-import ReclamosView from './views/ReclamosView.vue'; 
+import PedidosView from './views/PedidosView.vue';
+import FacturasView from './views/FacturasView.vue';
+import ReclamosView from './views/ReclamosView.vue';
+import HeaderBar from './components/HeaderBar.vue';
 
-// --- 2. IMPORTACIÓN DE COMPONENTES ---
-import HeaderBar from './components/HeaderBar.vue'; 
-import TiendaCliente from './components/TiendaCliente.vue'; 
-
-// --- 3. ESTADO DE LA APP ---
 const currentUser = ref(null);
 const currentModule = ref('dashboard');
 
-// --- 4. FUNCIONES DE LÓGICA ---
-const handleLoginSuccess = (user) => {
+const handleLoginSuccess = (user) => { 
   currentUser.value = user;
   currentModule.value = 'dashboard';
 };
@@ -35,22 +28,20 @@ const handleOpenModule = (modulo) => {
 </script>
 
 <template>
-  <LoginView 
-    v-if="!currentUser" 
-    @login-success="handleLoginSuccess" 
+  <LoginView
+    v-if="!currentUser"
+    @login-success="handleLoginSuccess"
   />
 
   <div v-else class="app-container">
-    
-    <HeaderBar 
-      :currentUser="currentUser" 
-      @logout="handleLogout" 
+    <HeaderBar
+      :currentUser="currentUser"
+      @logout="handleLogout"
       @go-home="handleOpenModule('dashboard')"
       @open-profile="handleOpenModule('perfiles')"
     />
 
     <main class="app-main">
-      
       <DashboardView
         v-if="currentModule === 'dashboard'"
         :currentUser="currentUser"
@@ -64,11 +55,6 @@ const handleOpenModule = (modulo) => {
 
       <InventarioView
         v-else-if="currentModule === 'inventario'"
-        :currentUser="currentUser"
-      />
-
-      <TiendaCliente
-        v-else-if="currentModule === 'pedidos' && currentUser.rol === 'CLIENTE'"
         :currentUser="currentUser"
       />
 
@@ -86,7 +72,6 @@ const handleOpenModule = (modulo) => {
         v-else-if="currentModule === 'reclamos'"
         :currentUser="currentUser"
       />
-
     </main>
   </div>
 </template>

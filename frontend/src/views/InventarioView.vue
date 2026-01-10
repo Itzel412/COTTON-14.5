@@ -572,8 +572,7 @@ onMounted(() => {
 .confirm-block h4 {
   margin-bottom: 0.75rem;
 }
-.confirm-block p,
-.confirm-block strong {
+.confirm-block p, .confirm-block strong {
   color: #1c262e;
 }
 .confirm-buttons {

@@ -133,14 +133,17 @@ export async function deleteProducto(id) {
 // 4. PEDIDOS 
 
 export async function createPedido(listaDePedidos) {
+  const payload = Array.isArray(listaDePedidos) ? listaDePedidos : [listaDePedidos];
+
   const response = await fetch(PEDIDOS_BASE_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(listaDePedidos),
+    body: JSON.stringify(payload),
   });
 
   if (!response.ok) {
-     throw new Error('Error al procesar el pedido');
+    const texto = await response.text().catch(() => '');
+    throw new Error(texto || 'Error al procesar el pedido');
   }
 
   return await response.json(); 
@@ -153,6 +156,48 @@ export async function getPedidos() {
   }
   return await response.json();
 }
+
+export async function updatePedido(pedido) {
+  const response = await fetch(PEDIDOS_BASE_URL, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(pedido),
+  });
+
+  if (!response.ok) {
+    const texto = await response.text().catch(() => '');
+    throw new Error(texto || 'Error al actualizar el pedido');
+  }
+
+  return await response.json(); 
+}
+
+export async function deletePedido(id) {
+  const response = await fetch(`${PEDIDOS_BASE_URL}/${id}`, {
+    method: 'DELETE',
+  });
+
+  if (!response.ok) {
+    const texto = await response.text().catch(() => '');
+    throw new Error(texto || 'Error al eliminar el pedido');
+  }
+
+  return await response.json(); 
+}
+
+export async function deletePedidoPorCodigo(codigo) {
+  const response = await fetch(`${PEDIDOS_BASE_URL}/codigo/${encodeURIComponent(codigo)}`, {
+    method: 'DELETE',
+  });
+
+  if (!response.ok) {
+    const texto = await response.text().catch(() => '');
+    throw new Error(texto || 'Error al eliminar el pedido por código');
+  }
+
+  return await response.json();
+}
+
 
 // 5. FACTURAS
 

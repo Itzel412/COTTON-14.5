@@ -1,82 +1,27 @@
 [ {
   "id" : 1,
-  "usuario" : "canino1@correo.com",
+  "usuario" : "carlos@correo.com",
   "idProducto" : 0,
   "nombre" : null,
   "color" : "Negro",
   "talla" : "M",
-  "cantidad" : 4,
+  "cantidad" : 1,
   "precioUnitario" : 10.5,
-  "total" : 42.0,
-  "fecha" : "2025-10-24"
+  "total" : 10.5,
+  "fecha" : "2025-11-11"
 }, {
   "id" : 2,
   "usuario" : "carlos@correo.com",
   "idProducto" : 0,
   "nombre" : null,
-  "color" : "Negro",
-  "talla" : "M",
+  "color" : "Rojo",
+  "talla" : "S",
   "cantidad" : 1,
   "precioUnitario" : 10.5,
   "total" : 10.5,
   "fecha" : "2025-11-11"
-}, {
+},{
   "id" : 3,
-  "usuario" : "carlos@correo.com",
-  "idProducto" : 0,
-  "nombre" : null,
-  "color" : "Rojo",
-  "talla" : "S",
-  "cantidad" : 1,
-  "precioUnitario" : 10.5,
-  "total" : 10.5,
-  "fecha" : "2025-11-11"
-}, {
-  "id" : 4,
-  "usuario" : "vale.o@correo.com",
-  "idProducto" : 0,
-  "nombre" : null,
-  "color" : "Rojo",
-  "talla" : "S",
-  "cantidad" : 2,
-  "precioUnitario" : 10.5,
-  "total" : 21.0,
-  "fecha" : "2025-11-11"
-}, {
-  "id" : 5,
-  "usuario" : "vale.o@correo.com",
-  "idProducto" : 0,
-  "nombre" : null,
-  "color" : "Blanco",
-  "talla" : "L",
-  "cantidad" : 2,
-  "precioUnitario" : 10.5,
-  "total" : 21.0,
-  "fecha" : "2025-11-11"
-}, {
-  "id" : 6,
-  "usuario" : "vale.o@correo.com",
-  "idProducto" : 0,
-  "nombre" : null,
-  "color" : "Rojo",
-  "talla" : "S",
-  "cantidad" : 2,
-  "precioUnitario" : 12.4,
-  "total" : 24.8,
-  "fecha" : "2025-11-11"
-}, {
-  "id" : 7,
-  "usuario" : "canino1@correo.com",
-  "idProducto" : 0,
-  "nombre" : null,
-  "color" : "Rojo",
-  "talla" : "S",
-  "cantidad" : 4,
-  "precioUnitario" : 12.4,
-  "total" : 49.6,
-  "fecha" : "2025-11-11"
-}, {
-  "id" : 8,
   "usuario" : "carlosi@gmail.com",
   "idProducto" : 0,
   "nombre" : null,

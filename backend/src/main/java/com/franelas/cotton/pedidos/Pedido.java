@@ -9,13 +9,12 @@ public class Pedido {
     private int cantidad;
     private double precioUnitario;
     private double total;
-    
 
-    private String codigo; 
+    private String codigo;
+    private String fecha; // ✅ NUEVO
 
     public Pedido() {}
 
-    // Getters y Setters
     public long getId() { return id; }
     public void setId(long id) { this.id = id; }
 
@@ -40,7 +39,9 @@ public class Pedido {
     public double getTotal() { return total; }
     public void setTotal(double total) { this.total = total; }
 
-    // Getter y Setter del nuevo campo
     public String getCodigo() { return codigo; }
     public void setCodigo(String codigo) { this.codigo = codigo; }
+
+    public String getFecha() { return fecha; }
+    public void setFecha(String fecha) { this.fecha = fecha; }
 }

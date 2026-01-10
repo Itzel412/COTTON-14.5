@@ -7,7 +7,8 @@
   "cantidad" : 1,
   "precioUnitario" : 15.0,
   "total" : 15.0,
-  "codigo" : "ORD-8CD2A181"
+  "codigo" : "ORD-8CD2A181",
+  "fecha" : null
 }, {
   "id" : 3,
   "usuario" : "juan@gmail.com",
@@ -17,7 +18,8 @@
   "cantidad" : 2,
   "precioUnitario" : 4.4,
   "total" : 8.8,
-  "codigo" : "ORD-8CD2A181"
+  "codigo" : "ORD-8CD2A181",
+  "fecha" : null
 }, {
   "id" : 4,
   "usuario" : "juan@gmail.com",
@@ -27,5 +29,83 @@
   "cantidad" : 2,
   "precioUnitario" : 10.5,
   "total" : 21.0,
-  "codigo" : "ORD-1685B627"
+  "codigo" : "ORD-1685B627",
+  "fecha" : null
+}, {
+  "id" : 5,
+  "usuario" : "carlos@correo.com",
+  "idProducto" : 8,
+  "color" : "Amarillo",
+  "talla" : "S",
+  "cantidad" : 1,
+  "precioUnitario" : 10.0,
+  "total" : 10.0,
+  "codigo" : "ORD-3B896283",
+  "fecha" : null
+}, {
+  "id" : 6,
+  "usuario" : "carlos@correo.com",
+  "idProducto" : 7,
+  "color" : "Morado",
+  "talla" : "M",
+  "cantidad" : 1,
+  "precioUnitario" : 9.9,
+  "total" : 9.9,
+  "codigo" : "ORD-3B896283",
+  "fecha" : null
+}, {
+  "id" : 7,
+  "usuario" : "carlos@correo.com",
+  "idProducto" : 7,
+  "color" : "Morado",
+  "talla" : "M",
+  "cantidad" : 1,
+  "precioUnitario" : 9.9,
+  "total" : 9.9,
+  "codigo" : "ORD-9FEFC1D4",
+  "fecha" : null
+}, {
+  "id" : 8,
+  "usuario" : "carlos@correo.com",
+  "idProducto" : 6,
+  "color" : "Negro",
+  "talla" : "S",
+  "cantidad" : 1,
+  "precioUnitario" : 12.0,
+  "total" : 12.0,
+  "codigo" : "ORD-9FEFC1D4",
+  "fecha" : null
+}, {
+  "id" : 9,
+  "usuario" : "diegom@gmail.com",
+  "idProducto" : 7,
+  "color" : "Morado",
+  "talla" : "M",
+  "cantidad" : 1,
+  "precioUnitario" : 9.9,
+  "total" : 9.9,
+  "codigo" : "ORD-5B7AED49",
+  "fecha" : "2026-01-10"
+}, {
+  "id" : 10,
+  "usuario" : "diegom@gmail.com",
+  "idProducto" : 6,
+  "color" : "Negro",
+  "talla" : "S",
+  "cantidad" : 1,
+  "precioUnitario" : 12.0,
+  "total" : 12.0,
+  "codigo" : "ORD-5B7AED49",
+  "fecha" : "2026-01-10"
+}, {
+  "id" : 11,
+  "usuario" : "diegom@gmail.com",
+  "idProducto" : 3,
+  "color" : "Azul",
+  "talla" : "M",
+  "cantidad" : 1,
+  "precioUnitario" : 15.0,
+  "total" : 15.0,
+  "codigo" : "ORD-5B7AED49",
+  "fecha" : "2026-01-10"
 } ]

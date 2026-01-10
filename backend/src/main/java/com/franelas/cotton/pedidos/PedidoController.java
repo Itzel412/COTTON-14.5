@@ -5,7 +5,6 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/pedidos")
-
 @CrossOrigin(origins = "http://localhost:5173")
 public class PedidoController {
 
@@ -31,12 +30,15 @@ public class PedidoController {
             System.err.println("Error: Se requiere un ID de pedido válido para actualizar.");
             return false;
         }
-
         return pedidoService.actualizarPedido(nuevoPedido);
     }
 
     @DeleteMapping("/{id}")
     public boolean eliminarPedido(@PathVariable("id") Long id) {
         return pedidoService.eliminarPedido(id);
+    }
+    @DeleteMapping("/codigo/{codigo}")
+    public boolean eliminarPedidoPorCodigo(@PathVariable("codigo") String codigo) {
+        return pedidoService.eliminarPedidosPorCodigo(codigo);
     }
 }
