@@ -24,9 +24,10 @@ public class PedidoController {
         return pedidoService.obtenerTodosLosPedidos();
     }
 
+
     @PutMapping
     public boolean actualizarPedido(@RequestBody Pedido nuevoPedido) {
-        if (nuevoPedido.getId() <= 0) {
+        if (nuevoPedido == null || nuevoPedido.getId() <= 0) {
             System.err.println("Error: Se requiere un ID de pedido válido para actualizar.");
             return false;
         }
@@ -37,6 +38,7 @@ public class PedidoController {
     public boolean eliminarPedido(@PathVariable("id") Long id) {
         return pedidoService.eliminarPedido(id);
     }
+
     @DeleteMapping("/codigo/{codigo}")
     public boolean eliminarPedidoPorCodigo(@PathVariable("codigo") String codigo) {
         return pedidoService.eliminarPedidosPorCodigo(codigo);

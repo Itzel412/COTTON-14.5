@@ -11,7 +11,7 @@ public class Pedido {
     private double total;
 
     private String codigo;
-    private String fecha; // ✅ NUEVO
+    private String fecha;
 
     public Pedido() {}
 

@@ -133,12 +133,10 @@ export async function deleteProducto(id) {
 // 4. PEDIDOS 
 
 export async function createPedido(listaDePedidos) {
-  const payload = Array.isArray(listaDePedidos) ? listaDePedidos : [listaDePedidos];
-
   const response = await fetch(PEDIDOS_BASE_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
+    body: JSON.stringify(listaDePedidos),
   });
 
   if (!response.ok) {
@@ -152,7 +150,8 @@ export async function createPedido(listaDePedidos) {
 export async function getPedidos() {
   const response = await fetch(PEDIDOS_BASE_URL);
   if (!response.ok) {
-    throw new Error('Error al obtener pedidos');
+    const texto = await response.text().catch(() => '');
+    throw new Error(texto || 'Error al obtener pedidos');
   }
   return await response.json();
 }
@@ -166,7 +165,7 @@ export async function updatePedido(pedido) {
 
   if (!response.ok) {
     const texto = await response.text().catch(() => '');
-    throw new Error(texto || 'Error al actualizar el pedido');
+    throw new Error(texto || 'Error al actualizar pedido');
   }
 
   return await response.json(); 
@@ -179,7 +178,7 @@ export async function deletePedido(id) {
 
   if (!response.ok) {
     const texto = await response.text().catch(() => '');
-    throw new Error(texto || 'Error al eliminar el pedido');
+    throw new Error(texto || 'Error al eliminar item del pedido');
   }
 
   return await response.json(); 
@@ -192,12 +191,11 @@ export async function deletePedidoPorCodigo(codigo) {
 
   if (!response.ok) {
     const texto = await response.text().catch(() => '');
-    throw new Error(texto || 'Error al eliminar el pedido por código');
+    throw new Error(texto || 'Error al eliminar pedido completo');
   }
 
-  return await response.json();
+  return await response.json(); 
 }
-
 
 // 5. FACTURAS
 

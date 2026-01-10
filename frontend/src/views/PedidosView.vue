@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import {
   getProductos,
   getPedidos,
@@ -13,7 +13,7 @@ const props = defineProps({
   currentUser: { type: Object, required: true },
 });
 
-const esAdmin = computed(() => props.currentUser?.rol === 'ADMIN');
+const esAdmin = computed(() => (props.currentUser?.rol || '').toUpperCase() === 'ADMIN');
 
 // ------------------ Estado general ------------------
 const productos = ref([]);
@@ -21,16 +21,13 @@ const pedidos = ref([]);
 
 // cliente
 const vistaCliente = ref('tienda'); // 'tienda' | 'historial'
-const carrito = ref([]); // items del carrito (payload Pedido)
+const carrito = ref([]); // items del carrito
 const historialAgrupado = ref([]);
 
 // loading / feedback
 const loadingProductos = ref(false);
 const loadingPedidos = ref(false);
 const loadingAccion = ref(false);
-
-const error = ref(null);
-const mensaje = ref(null);
 
 // modal simple
 const modal = ref({
@@ -57,12 +54,15 @@ const editForm = ref({
 const abrirModalInfo = (titulo, msg) => {
   modal.value = { visible: true, tipo: 'info', titulo, mensaje: msg, accionConfirmar: null };
 };
+
 const abrirModalError = (titulo, msg) => {
   modal.value = { visible: true, tipo: 'error', titulo, mensaje: msg, accionConfirmar: null };
 };
+
 const abrirModalConfirm = (titulo, msg, cb) => {
   modal.value = { visible: true, tipo: 'confirm', titulo, mensaje: msg, accionConfirmar: cb };
 };
+
 const abrirModalEdit = (pedidoItem) => {
   editForm.value = {
     id: pedidoItem.id,
@@ -88,7 +88,7 @@ const cargarProductos = async () => {
   try {
     productos.value = await getProductos();
   } catch (e) {
-    abrirModalError('Error', e.message || 'No se pudo cargar el catálogo.');
+    abrirModalError('Error', e?.message || 'No se pudo cargar el catálogo.');
   } finally {
     loadingProductos.value = false;
   }
@@ -100,7 +100,7 @@ const cargarPedidos = async () => {
     pedidos.value = await getPedidos();
     if (!esAdmin.value) construirHistorialAgrupado();
   } catch (e) {
-    abrirModalError('Error', e.message || 'No se pudo cargar pedidos.');
+    abrirModalError('Error', e?.message || 'No se pudo cargar pedidos.');
   } finally {
     loadingPedidos.value = false;
   }
@@ -109,6 +109,7 @@ const cargarPedidos = async () => {
 // Admin ve todo; Cliente ve solo suyo
 const pedidosFiltrados = computed(() => {
   if (esAdmin.value) return pedidos.value;
+
   const correo = (props.currentUser?.correo || '').toLowerCase().trim();
   return pedidos.value.filter((p) => (p.usuario || '').toLowerCase().trim() === correo);
 });
@@ -127,20 +128,32 @@ const construirHistorialAgrupado = () => {
   historialAgrupado.value = Object.values(grupos).reverse();
 };
 
+// Mantener historial actualizado cuando cambia la lista filtrada
+watch(pedidosFiltrados, () => {
+  if (!esAdmin.value) construirHistorialAgrupado();
+});
+
 // ------------------ Carrito ------------------
 const totalCarrito = computed(() =>
   carrito.value.reduce((acc, it) => acc + Number(it.precioUnitario || 0) * Number(it.cantidad || 0), 0)
 );
 
+const recalcularCarrito = () => {
+  carrito.value = carrito.value.map((it) => ({
+    ...it,
+    total: Number(it.precioUnitario || 0) * Number(it.cantidad || 0),
+  }));
+};
+
 const agregarAlCarrito = (p) => {
-  if (!p || p.stock <= 0) return;
+  if (!p || Number(p.stock || 0) <= 0) return;
 
   const idx = carrito.value.findIndex(
     (i) => i.idProducto === p.id && i.color === p.color && i.talla === p.talla
   );
 
   if (idx !== -1) {
-    if (carrito.value[idx].cantidad + 1 > p.stock) {
+    if (Number(carrito.value[idx].cantidad) + 1 > Number(p.stock)) {
       abrirModalInfo('Stock', 'No hay más unidades disponibles.');
       return;
     }
@@ -153,31 +166,26 @@ const agregarAlCarrito = (p) => {
       talla: p.talla,
       cantidad: 1,
       precioUnitario: Number(p.precio),
-      total: Number(p.precio), // se recalcula
+      total: Number(p.precio),
       fecha: new Date().toISOString().split('T')[0],
       displayNombre: `${p.color} - ${p.talla}`,
     });
   }
 
-  // recalcular total por item
-  carrito.value = carrito.value.map((it) => ({
-    ...it,
-    total: Number(it.precioUnitario) * Number(it.cantidad),
-  }));
+  recalcularCarrito();
 };
 
 const restarDelCarrito = (i) => {
+  if (!carrito.value[i]) return;
   if (carrito.value[i].cantidad > 1) carrito.value[i].cantidad--;
   else carrito.value.splice(i, 1);
-
-  carrito.value = carrito.value.map((it) => ({
-    ...it,
-    total: Number(it.precioUnitario) * Number(it.cantidad),
-  }));
+  recalcularCarrito();
 };
 
 const eliminarDelCarrito = (i) => {
+  if (!carrito.value[i]) return;
   carrito.value.splice(i, 1);
+  recalcularCarrito();
 };
 
 // ------------------ Confirmar compra ------------------
@@ -199,6 +207,7 @@ const procesarCompraBackend = async () => {
       color: item.color,
       talla: item.talla,
       cantidad: Number(item.cantidad),
+      // estos 2 campos los ignora el backend y los recalcula, pero los dejamos por claridad
       precioUnitario: Number(item.precioUnitario),
       total: Number(item.precioUnitario) * Number(item.cantidad),
       fecha: item.fecha,
@@ -214,7 +223,7 @@ const procesarCompraBackend = async () => {
     await Promise.all([cargarProductos(), cargarPedidos()]);
     abrirModalInfo('¡Pedido Exitoso!', 'Tu compra ha sido registrada correctamente.');
   } catch (e) {
-    abrirModalError('Error', e.message || 'Hubo un error de comunicación.');
+    abrirModalError('Error', e?.message || 'Hubo un error de comunicación.');
   } finally {
     loadingAccion.value = false;
   }
@@ -222,6 +231,7 @@ const procesarCompraBackend = async () => {
 
 // ------------------ Historial: eliminar pedido completo ------------------
 const solicitarEliminarPedidoCompleto = (grupo) => {
+  if (!grupo?.codigo) return;
   abrirModalConfirm(
     'Eliminar pedido',
     `¿Seguro que deseas eliminar el pedido ${grupo.codigo}? Esta acción restaurará el stock.`,
@@ -236,7 +246,7 @@ const solicitarEliminarPedidoCompleto = (grupo) => {
         await Promise.all([cargarProductos(), cargarPedidos()]);
         abrirModalInfo('Eliminado', `Pedido ${grupo.codigo} eliminado correctamente.`);
       } catch (e) {
-        abrirModalError('Error', e.message || 'No se pudo eliminar el pedido.');
+        abrirModalError('Error', e?.message || 'No se pudo eliminar el pedido.');
       } finally {
         loadingAccion.value = false;
       }
@@ -246,6 +256,7 @@ const solicitarEliminarPedidoCompleto = (grupo) => {
 
 // ------------------ Historial: eliminar item ------------------
 const solicitarEliminarItem = (item) => {
+  if (!item?.id) return;
   abrirModalConfirm(
     'Eliminar item',
     `¿Seguro que deseas eliminar este item del pedido ${item.codigo}?`,
@@ -260,7 +271,7 @@ const solicitarEliminarItem = (item) => {
         await Promise.all([cargarProductos(), cargarPedidos()]);
         abrirModalInfo('Eliminado', 'Item eliminado correctamente.');
       } catch (e) {
-        abrirModalError('Error', e.message || 'No se pudo eliminar el item.');
+        abrirModalError('Error', e?.message || 'No se pudo eliminar el item.');
       } finally {
         loadingAccion.value = false;
       }
@@ -293,7 +304,7 @@ const guardarEdicionItem = async () => {
     await Promise.all([cargarProductos(), cargarPedidos()]);
     abrirModalInfo('Actualizado', 'Item actualizado correctamente.');
   } catch (e) {
-    abrirModalError('Error', e.message || 'No se pudo actualizar el item.');
+    abrirModalError('Error', e?.message || 'No se pudo actualizar el item.');
   } finally {
     loadingAccion.value = false;
   }
@@ -320,8 +331,8 @@ onMounted(async () => {
         <h2 v-if="esAdmin">Gestión de pedidos</h2>
         <h2 v-else>Pedidos</h2>
 
-        <p v-if="esAdmin">Consulta los pedidos realizados por los clientes.</p>
-        <p v-else>Compra desde el catálogo, gestiona tu carrito y revisa tu historial.</p>
+        <p v-if="esAdmin">Pedidos realizados por los clientes.</p>
+        <p v-else>Selecciona los productos que desea comprar.</p>
       </header>
 
       <!-- MODAL -->
@@ -556,11 +567,11 @@ onMounted(async () => {
 
 <style scoped>
 .pedidos-wrapper {
-  padding: 2.5rem 1rem 3rem; 
-  display: flex; 
-  justify-content: 
-  center;
- }
+  padding: 2.5rem 1rem 3rem;
+  display: flex;
+  justify-content: center;
+}
+
 .pedidos-card {
   background: var(--cotton-light, #fcf5e9);
   border-radius: 20px;
@@ -569,345 +580,439 @@ onMounted(async () => {
   width: 100%;
   box-shadow: 0 10px 30px rgba(0,0,0,0.18);
 }
-.pedidos-header { 
-  margin-bottom: 1.5rem; 
-}
-.pedidos-header h2 { 
-  font-size: 1.6rem; 
-  margin-bottom: 0.3rem; 
-  color: #1c262e; 
-}
-.pedidos-header p { 
-  color: #555; 
-  font-size: 0.95rem; 
+
+.pedidos-header {
+  margin-bottom: 1.5rem;
 }
 
-.ped-panel { 
-  background: #fff; 
-  border-radius: 16px; 
-  padding: 1.5rem; 
-  border: 1px solid #ddd; 
-}
-.panel-title { 
-  font-size: 1.1rem; 
-  margin-bottom: 0.75rem; 
-  color: #1c262e; 
-}
-.ped-table { 
-  width: 100%; 
-  border-collapse: collapse; 
-  font-size: 0.9rem; 
-  background: #fff; 
-  border-radius: 12px; 
-  overflow: hidden; 
-}
-.ped-table thead { 
-  background: #f0f0f0; 
-}
-.ped-table th, .ped-table td { 
-  padding: 0.55rem 0.6rem; 
-  border-bottom: 1px solid #e4e4e4; 
-  text-align: left; 
-}
-.acciones { 
-  display: flex; 
-  gap: 0.4rem; 
-}
-.btn-mini {
-  border: none; 
-  border-radius: 8px; 
-  padding: 0.35rem 0.6rem;
-  background: #1c262e; 
-  color: #fff; 
-  cursor: pointer; 
-  font-size: 0.82rem;
-}
-.btn-mini.danger { 
-  background: #e74c3c; 
-}
-.tabs-nav { 
-  display: flex; 
-  justify-content: center; 
-  gap: 1rem; 
-  margin-bottom: 2rem; 
-}
-.tab-btn {
-  background: transparent; 
-  border: 2px solid rgba(28, 38, 46, 0.2);
-  padding: 0.6rem 1.5rem; 
-  border-radius: 50px; 
-  color: #666;
-  font-weight: 600; 
-  cursor: pointer; 
-  transition: all 0.2s ease;
-}
-.tab-btn.active { 
-  background: #1c262e; 
-  border-color: #1c262e; 
-  color: #fff; 
-}
-.vista-tienda { 
-  display: flex; 
-  gap: 2rem; 
-  align-items: flex-start; 
-}
-.bloque-catalogo { 
-  flex: 1; 
-}
-.bloque-carrito { 
-  width: 360px; 
-  position: sticky; 
-  top: 1rem; 
-}
-.catalog-grid { 
-  display: grid; 
-  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); 
-  gap: 1rem; 
-}
-.prod-card { 
-  background: #fff; 
-  border-radius: 14px; 
-  padding: 1rem; 
-  border: 1px solid #e2e2e2; 
-  box-shadow: 0 4px 10px rgba(0,0,0,0.04); 
-}
-.prod-card h4 { 
-  margin: 0 0 0.25rem; 
-  color: #1c262e; 
-}
-.prod-price { 
-  font-weight: 700; 
-  margin-bottom: 0.25rem; 
-  color: #1c262e; 
-}
-.prod-stock { 
-  font-size: 0.85rem; 
-  color: #555; 
-  margin-bottom: 0.6rem; 
-}
-.btn-ambos {
-  background: #1c262e; 
-  color: #fff; 
-  border: none; 
-  border-radius: 10px;
-  padding: 0.6rem 1rem; 
-  font-weight: 700; 
-  cursor: pointer;
-}
-.btn-ambos:disabled { 
-  background: #ccc; 
-  cursor: not-allowed; 
-}
-.prod-btn { 
-  width: 100%; 
-}
-.card-carrito { 
-  background: #fff; 
-  border-radius: 16px; 
-  padding: 1.5rem; 
-  box-shadow: 0 4px 20px rgba(0,0,0,0.08); 
-}
-.carrito-header { 
-  display: flex; 
-  justify-content: space-between; 
-  align-items: center; 
-  padding-bottom: 1rem; 
-  border-bottom: 1px solid #eee; 
-  margin-bottom: 1rem; 
+.pedidos-header h2 {
+  font-size: 1.6rem;
+  margin-bottom: 0.3rem;
   color: #1c262e;
 }
-.badge-count { 
-  background: #e18b6b; 
-  color: #fff; 
-  padding: 2px 8px; 
-  border-radius: 12px; 
-  font-size: 0.85rem; 
-  font-weight: bold; 
+
+.pedidos-header p {
+  color: #555;
+  font-size: 0.95rem;
 }
-.lista-carrito { 
-  max-height: 420px; 
-  overflow-y: auto; 
+
+.ped-panel {
+  background: #fff;
+  border-radius: 16px;
+  padding: 1.5rem;
+  border: 1px solid #ddd;
 }
-.item-fila { 
-  display: flex; 
-  justify-content: space-between; 
-  align-items: center; 
-  padding: 0.8rem 0; 
-  border-bottom: 1px dashed #eee; 
+
+.panel-title {
+  font-size: 1.1rem;
+  margin-bottom: 0.75rem;
+  color: #1c262e;
 }
-.subtexto { 
-  font-size: 0.8rem; 
-  color: #888; 
-  margin-top: 2px; 
+
+/* --- TABLA (contraste fuerte) --- */
+.ped-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+  background: #fff;
+  border-radius: 12px;
+  overflow: hidden;
 }
-.precio-fila { 
-  font-weight: bold; 
-  color: #1c262e; 
-  margin: 0 10px; 
+
+/* Forzar legibilidad */
+.ped-table,
+.ped-table * {
+  opacity: 1 !important;
 }
-.btn-icon { 
-  width: 24px; 
-  height: 24px; 
-  border-radius: 50%; 
-  border: 1px solid #ddd; 
-  background: #fff; 
-  cursor: pointer; 
-  margin-left: 4px; 
+
+.ped-table thead {
+  background: #f0f0f0;
 }
-.btn-icon.delete { 
-  border-color: #ffecec; 
-  color: #e74c3c; 
-  background: #fff5f5; 
+
+.ped-table th {
+  padding: 0.55rem 0.6rem;
+  border-bottom: 1px solid #e4e4e4;
+  text-align: left;
+  color: #1c262e !important;
+  font-weight: 800 !important;
 }
-.footer-carrito { 
-  margin-top: 1.5rem; 
-  padding-top: 1rem; 
-  border-top: 2px solid #f0f0f0; 
+
+.ped-table td {
+  padding: 0.55rem 0.6rem;
+  border-bottom: 1px solid #e4e4e4;
+  text-align: left;
+  color: #1c262e !important;
+  font-weight: 600;
 }
-.total-row { 
-  display: flex; 
-  justify-content: space-between; 
-  align-items: center; 
-  margin-bottom: 1rem; 
-  font-size: 1.1rem; 
+
+.acciones {
+  display: flex;
+  gap: 0.4rem;
 }
-.monto-total { 
-  font-weight: 800; 
-  font-size: 1.4rem; 
-  color: #1c262e; 
-}
-.btn-confirmar {
-  width: 100%; 
-  padding: 1rem; 
-  background: #1c262e; 
-  color: #fff; 
+
+.btn-mini {
   border: none;
-  border-radius: 10px; 
-  font-size: 1rem; 
-  font-weight: 800; 
+  border-radius: 8px;
+  padding: 0.35rem 0.6rem;
+  background: #1c262e;
+  color: #fff;
+  cursor: pointer;
+  font-size: 0.82rem;
+}
+
+.btn-mini.danger {
+  background: #e74c3c;
+}
+
+.tabs-nav {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.tab-btn {
+  background: transparent;
+  border: 2px solid rgba(28, 38, 46, 0.2);
+  padding: 0.6rem 1.5rem;
+  border-radius: 50px;
+  color: #666;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.tab-btn.active {
+  background: #1c262e;
+  border-color: #1c262e;
+  color: #fff;
+}
+
+.vista-tienda {
+  display: flex;
+  gap: 2rem;
+  align-items: flex-start;
+}
+
+.bloque-catalogo {
+  flex: 1;
+}
+
+.bloque-carrito {
+  width: 360px;
+  position: sticky;
+  top: 1rem;
+}
+
+.catalog-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 1rem;
+}
+
+.prod-card {
+  background: #fff;
+  border-radius: 14px;
+  padding: 1rem;
+  border: 1px solid #e2e2e2;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.04);
+}
+
+.prod-card h4 {
+  margin: 0 0 0.25rem;
+  color: #1c262e;
+}
+
+.prod-price {
+  font-weight: 800;
+  margin-bottom: 0.25rem;
+  color: #1c262e;
+}
+
+.prod-stock {
+  font-size: 0.85rem;
+  color: #555;
+  margin-bottom: 0.6rem;
+}
+
+.btn-ambos {
+  background: #1c262e;
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  padding: 0.6rem 1rem;
+  font-weight: 800;
   cursor: pointer;
 }
-.btn-confirmar:disabled { 
-  background: #ccc; 
-  cursor: not-allowed; 
+
+.btn-ambos:disabled {
+  background: #ccc;
+  cursor: not-allowed;
 }
-.grid-historial { 
-  display: flex; 
-  flex-direction: column; 
-  gap: 1.5rem; 
+
+.prod-btn {
+  width: 100%;
 }
-.card-historial { 
-  background: #fff; 
-  border-radius: 12px; 
-  border: 1px solid #eee; 
-  overflow: hidden; 
+
+.card-carrito {
+  color: #1c262e;
+  background: #fff;
+  border-radius: 16px;
+  padding: 1.5rem;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.08);
 }
-.historial-header { 
-  background: #fcfbf9; 
-  padding: 1rem 1.5rem; 
-  display: flex; 
-  justify-content: space-between; 
-  align-items: center; 
-  border-bottom: 1px solid #eee; 
-}
-.order-id { 
-  font-family: monospace; 
-  font-weight: bold; 
-  background: #e0e0e0; 
-  padding: 3px 6px; 
-  border-radius: 4px; 
-  color: #333; 
-}
-.order-items { 
-  font-size: 0.85rem; 
-  color: #666; 
-  margin-left: 10px; 
-}
-.order-total { 
-  font-weight: 900; 
-  font-size: 1.2rem; 
-  color: #1c262e; 
-}
-.historial-body { 
-  padding: 1rem 1.5rem; 
-}
-.historial-footer { 
-  padding: 0.8rem 1.5rem; 
-  text-align: right; 
-  border-top: 1px solid #f3f3f3; 
-}
-.btn-text-danger { 
-  background: none; 
-  border: none; 
-  color: #e74c3c; 
-  font-weight: 800; 
-  cursor: pointer; 
-}
-.modal-backdrop { 
-  position: fixed; 
-  inset: 0; 
-  background: rgba(28,38,46,0.6); 
-  display: flex; 
-  justify-content: center; 
-  align-items: center; 
-  z-index: 1000; 
-}
-.modal-card { 
-  background: #fff; 
-  padding: 1.6rem; 
-  border-radius: 16px; 
-  width: min(420px, 92%); 
-  box-shadow: 0 15px 40px rgba(0,0,0,0.2); 
-}
-.modal-actions { 
+
+.carrito-header {
   display: flex;
-  gap: 1rem; 
-  justify-content: flex-end; 
-  margin-top: 1rem; 
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #eee;
+  margin-bottom: 1rem;
+  color: #1c262e;
 }
-.btn-primary { 
-  background: #1c262e; 
-  color: #fff; 
-  padding: 0.7rem 1.2rem; 
-  border: none; 
-  border-radius: 10px; 
-  font-weight: 800; 
-  cursor: pointer; 
+
+.badge-count {
+  background: #e18b6b;
+  color: #fff;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  font-weight: 800;
 }
-.btn-secondary { 
-  background: #f0f0f0; 
-  color: #333; 
-  padding: 0.7rem 1.2rem; 
-  border: none; 
-  border-radius: 10px; 
-  font-weight: 800; 
-  cursor: pointer; 
+
+.lista-carrito {
+  max-height: 420px;
+  overflow-y: auto;
 }
-.form-grid { 
-  display: grid; 
-  grid-template-columns: 1fr; 
-  gap: 0.8rem; 
-  margin-top: 0.6rem; 
+
+.item-fila {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.8rem 0;
+  border-bottom: 1px dashed #eee;
 }
-.form-group label { 
-  display: block; 
-  font-weight: 800; 
-  margin-bottom: 0.2rem; 
-  color: #1c262e; 
+
+.subtexto {
+  font-size: 0.8rem;
+  color: #666;
+  margin-top: 2px;
+  font-weight: 600;
 }
-.form-group input { 
-  width: 100%; 
-  padding: 0.6rem; 
-  border-radius: 10px; 
-  border: 1px solid #ddd; 
+
+.precio-fila {
+  font-weight: 900;
+  color: #1c262e;
+  margin: 0 10px;
+}
+
+.btn-icon {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 1px solid #ddd;
+  background: #fff;
+  cursor: pointer;
+  margin-left: 4px;
+  font-weight: 900;
+}
+
+.btn-icon.delete {
+  border-color: #ffecec;
+  color: #e74c3c;
+  background: #fff5f5;
+}
+
+.footer-carrito {
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 2px solid #f0f0f0;
+  color: #1c262e;
+}
+
+.total-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  font-size: 1.1rem;
+  font-weight: 800;
+}
+
+.monto-total {
+  font-weight: 900;
+  font-size: 1.4rem;
+  color: #1c262e;
+}
+
+.btn-confirmar {
+  width: 100%;
+  padding: 1rem;
+  background: #1c262e;
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  font-size: 1rem;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.btn-confirmar:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+}
+
+.grid-historial {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.card-historial {
+  color: #1c262e;
+  background: #fff;
+  border-radius: 12px;
+  border: 1px solid #eee;
+  overflow: hidden;
+}
+
+.historial-header {
+  background: #fcfbf9;
+  padding: 1rem 1.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #eee;
+}
+
+.order-id {
+  font-family: monospace;
+  font-weight: 900;
+  background: #e0e0e0;
+  padding: 3px 6px;
+  border-radius: 4px;
+  color: #1c262e;
+}
+
+.order-items {
+  font-size: 0.85rem;
+  color: #555;
+  margin-left: 10px;
+  font-weight: 700;
+}
+
+.order-total {
+  font-weight: 900;
+  font-size: 1.2rem;
+  color: #1c262e;
+}
+
+.historial-body {
+  padding: 1rem 1.5rem;
+}
+
+.historial-footer {
+  padding: 0.8rem 1.5rem;
+  text-align: right;
+  border-top: 1px solid #f3f3f3;
+}
+
+.btn-text-danger {
+  background: none;
+  border: none;
+  color: #e74c3c;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(28,38,46,0.6);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal-card {
+  background: #fff;
+  padding: 1.6rem;
+  border-radius: 16px;
+  width: min(420px, 92%);
+  box-shadow: 0 15px 40px rgba(0,0,0,0.2);
+  color: #1c262e;
+}
+
+.modal-card h3 {
+  margin: 0 0 0.5rem;
+  font-weight: 900;
+  color: #1c262e;
+}
+
+.modal-card p {
+  color: #1c262e;
+  font-weight: 600;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-end;
+  margin-top: 1rem;
+}
+
+.btn-primary {
+  background: #1c262e;
+  color: #fff;
+  padding: 0.7rem 1.2rem;
+  border: none;
+  border-radius: 10px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.btn-secondary {
+  background: #f0f0f0;
+  color: #1c262e;
+  padding: 0.7rem 1.2rem;
+  border: none;
+  border-radius: 10px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.8rem;
+  margin-top: 0.6rem;
+}
+
+.form-group label {
+  display: block;
+  font-weight: 900;
+  margin-bottom: 0.2rem;
+  color: #1c262e;
+}
+
+.form-group input {
+  width: 100%;
+  padding: 0.6rem;
+  border-radius: 10px;
+  border: 1px solid #ddd;
+  color: #1c262e;
+  font-weight: 700;
 }
 
 @media (max-width: 900px) {
-  .vista-tienda { 
-    flex-direction: column; 
+  .vista-tienda {
+    flex-direction: column;
   }
-  .bloque-carrito { 
-    width: 100%; position: static; 
+  .bloque-carrito {
+    width: 100%;
+    position: static;
   }
 }
 </style>
