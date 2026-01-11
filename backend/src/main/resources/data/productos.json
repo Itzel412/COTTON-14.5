@@ -25,7 +25,7 @@
   "color" : "Morado",
   "talla" : "M",
   "precio" : 9.9,
-  "stock" : 5
+  "stock" : 3
 }, {
   "id" : 8,
   "nombre" : null,
@@ -33,4 +33,11 @@
   "talla" : "S",
   "precio" : 10.0,
   "stock" : 7
+}, {
+  "id" : 9,
+  "nombre" : null,
+  "color" : "Verde",
+  "talla" : "XL",
+  "precio" : 14.0,
+  "stock" : 5
 } ]
