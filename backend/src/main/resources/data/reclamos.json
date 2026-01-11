@@ -1,15 +1,15 @@
 [ {
   "id" : 1,
-  "usuario" : "canino1@correo.com",
-  "titulo" : "Camisa desteñida",
-  "descripcion" : "La camisa esta dessteñida k,vjhfyjdjmyjymfmyjjefkjhkfjaksjflkasjflkjaskfjlakjsflkjak",
-  "fechaCreacion" : "2025-11-11 08:37",
-  "estado" : "PENDIENTE"
+  "usuario" : "carlos@correo.com",
+  "titulo" : "Talla erronea",
+  "descripcion" : "Me dieron una talla que no es la que pedi, me gustaria cambiarla",
+  "fechaCreacion" : "2025-11-10",
+  "estado" : "EN_PROCESO"
 }, {
   "id" : 2,
-  "usuario" : "canino1@correo.com",
-  "titulo" : "Reclamo ejemplo",
-  "descripcion" : "klsajdkjakjlakjflkjskdlfjakjdfoadsjfkjadskfjkasdjfksdjfkjsdlkfjlskdjflsjkd",
-  "fechaCreacion" : "2025-11-11 08:50",
-  "estado" : "EN_PROCESO"
+  "usuario" : "diegom@gmail.com",
+  "titulo" : "Camisa dañada",
+  "descripcion" : "La camisa tiene un hueco y el color se le cae, me parece que se deberia arreglar",
+  "fechaCreacion" : "2026-01-10",
+  "estado" : "PENDIENTE"
 } ]

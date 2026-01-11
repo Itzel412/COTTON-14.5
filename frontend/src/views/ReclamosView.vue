@@ -1,12 +1,14 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
-import { getReclamos, createReclamo, updateReclamoEstado } from '../data/api';
+import {
+  getReclamos,
+  createReclamo,
+  updateReclamoEstado,
+  deleteReclamo
+} from '../data/api';
 
 const props = defineProps({
-  currentUser: {
-    type: Object,
-    required: true,
-  },
+  currentUser: { type: Object, required: true },
 });
 
 const esAdmin = computed(() => props.currentUser?.rol === 'ADMIN');
@@ -16,7 +18,7 @@ const loading = ref(false);
 const error = ref(null);
 const mensaje = ref(null);
 
-const modo = ref('crear'); // cliente: crear / mis-reclamos
+const modo = ref('crear');
 
 const pasoCrear = ref('form');
 const nuevoReclamo = ref({
@@ -26,6 +28,17 @@ const nuevoReclamo = ref({
 
 const reclamoParaConfirmar = ref(null);
 
+const modal = ref({
+  visible: false,
+  titulo: '',
+  mensaje: '',
+  onConfirm: null,
+});
+const abrirConfirm = (titulo, mensajeTxt, cb) => {
+  modal.value = { visible: true, titulo, mensaje: mensajeTxt, onConfirm: cb };
+};
+const cerrarConfirm = () => { modal.value.visible = false; };
+
 const ESTADOS = [
   { value: 'PENDIENTE', label: 'Pendiente' },
   { value: 'EN_PROCESO', label: 'En proceso' },
@@ -34,15 +47,15 @@ const ESTADOS = [
 
 const reclamosFiltrados = computed(() => {
   if (esAdmin.value) return reclamos.value;
-  const correo = props.currentUser?.correo || '';
-  return reclamos.value.filter((r) => r.usuario === correo);
+  const correo = (props.currentUser?.correo || '').trim();
+  return reclamos.value.filter((r) => (r.usuario || '').trim() === correo);
 });
 
 const cargarReclamos = async () => {
   loading.value = true;
   error.value = null;
   try {
-    reclamos.value = await getReclamos();
+    reclamos.value = await getReclamos(props.currentUser);
   } catch (e) {
     error.value = e.message || 'Error al cargar reclamos';
   } finally {
@@ -55,8 +68,8 @@ const validarYConfirmar = () => {
   mensaje.value = null;
 
   const faltantes = [];
-  if (!nuevoReclamo.value.titulo) faltantes.push('Título');
-  if (!nuevoReclamo.value.descripcion) faltantes.push('Descripción');
+  if (!nuevoReclamo.value.titulo?.trim()) faltantes.push('Título');
+  if (!nuevoReclamo.value.descripcion?.trim()) faltantes.push('Descripción');
 
   if (faltantes.length) {
     error.value = `Campo(s) faltante(s): ${faltantes.join(', ')}.`;
@@ -69,8 +82,8 @@ const validarYConfirmar = () => {
   }
 
   reclamoParaConfirmar.value = {
-    titulo: nuevoReclamo.value.titulo,
-    descripcion: nuevoReclamo.value.descripcion,
+    titulo: nuevoReclamo.value.titulo.trim(),
+    descripcion: nuevoReclamo.value.descripcion.trim(),
   };
   pasoCrear.value = 'confirm';
 };
@@ -79,6 +92,7 @@ const confirmarCreacion = async () => {
   if (!reclamoParaConfirmar.value) return;
 
   error.value = null;
+  mensaje.value = null;
 
   const payload = {
     usuario: props.currentUser.correo,
@@ -87,7 +101,7 @@ const confirmarCreacion = async () => {
   };
 
   try {
-    const ok = await createReclamo(payload);
+    const ok = await createReclamo(payload, props.currentUser);
     if (!ok) {
       error.value = 'El backend no pudo registrar el reclamo.';
       return;
@@ -109,12 +123,14 @@ const cancelarCreacion = () => {
 };
 
 const cambiarEstado = async (reclamo, nuevoEstado) => {
+  if (!esAdmin.value) return;
   if (!nuevoEstado || nuevoEstado === reclamo.estado) return;
 
   error.value = null;
   mensaje.value = null;
+
   try {
-    const ok = await updateReclamoEstado(reclamo.id, nuevoEstado);
+    const ok = await updateReclamoEstado(reclamo.id, nuevoEstado, props.currentUser);
     if (!ok) {
       error.value = 'No se pudo actualizar el estado del reclamo.';
       return;
@@ -126,6 +142,32 @@ const cambiarEstado = async (reclamo, nuevoEstado) => {
   }
 };
 
+const solicitarEliminar = (reclamo) => {
+  if (!esAdmin.value) return;
+
+  abrirConfirm(
+    'Eliminar reclamo',
+    `¿Seguro que deseas eliminar el reclamo #${reclamo.id} (${reclamo.titulo})?`,
+    async () => {
+      cerrarConfirm();
+      error.value = null;
+      mensaje.value = null;
+
+      try {
+        const ok = await deleteReclamo(reclamo.id, props.currentUser);
+        if (!ok) {
+          error.value = 'No se pudo eliminar el reclamo.';
+          return;
+        }
+        mensaje.value = 'Reclamo eliminado correctamente.';
+        await cargarReclamos();
+      } catch (e) {
+        error.value = e.message || 'Error al eliminar el reclamo.';
+      }
+    }
+  );
+};
+
 onMounted(() => {
   cargarReclamos();
 });
@@ -135,39 +177,43 @@ onMounted(() => {
   <section class="reclamos-wrapper">
     <div class="reclamos-card">
       <header class="reclamos-header">
-        <h2 v-if="esAdmin">Gestión de reclamos</h2>
+        <h2 v-if="esAdmin">Reclamos</h2>
         <h2 v-else>Atención al cliente</h2>
 
         <p v-if="esAdmin">
-          Visualiza los reclamos de los clientes y actualiza su estado.
+          Revisa, actualiza o elimina los reclamos de clientes.
         </p>
         <p v-else>
-          Crea reclamos sobre tus pedidos o productos para que el
-          administrador pueda revisar tu caso.
+          Crea reclamos sobre tus pedidos o productos para que el administrador revise tu caso.
         </p>
       </header>
 
       <transition name="fade">
-        <div v-if="error || mensaje" class="alert-overlay">
-          <div
-            class="alert-box"
-            :class="{ 'alert-error': error, 'alert-success': mensaje }"
-          >
-            <p class="alert-text">
-              {{ error || mensaje }}
-            </p>
-            <button
-              type="button"
-              class="alert-btn"
-              @click="() => { error = null; mensaje = null; }"
-            >
+        <div v-if="modal.visible" class="alert-overlay">
+          <div class="alert-box">
+            <p class="alert-text"><strong>{{ modal.titulo }}</strong></p>
+            <p class="alert-text">{{ modal.mensaje }}</p>
+            <div class="confirm-actions">
+              <button type="button" class="alert-btn secondary" @click="cerrarConfirm">Cancelar</button>
+              <button type="button" class="alert-btn" @click="() => { if (modal.onConfirm) modal.onConfirm(); }">
+                Eliminar
+              </button>
+            </div>
+          </div>
+        </div>
+      </transition>
+
+      <transition name="fade">
+        <div v-if="(error || mensaje) && !modal.visible" class="alert-overlay">
+          <div class="alert-box" :class="{ 'alert-error': error, 'alert-success': mensaje }">
+            <p class="alert-text">{{ error || mensaje }}</p>
+            <button type="button" class="alert-btn" @click="() => { error = null; mensaje = null; }">
               OK
             </button>
           </div>
         </div>
       </transition>
 
-      <!-- ADMIN -->
       <template v-if="esAdmin">
         <div class="rec-panel">
           <h3 class="panel-title">Reclamos registrados</h3>
@@ -175,74 +221,71 @@ onMounted(() => {
           <p v-if="loading">Cargando reclamos...</p>
 
           <div v-else class="rec-table-wrapper">
-            <table class="rec-table">
+            <table class="rec-table rec-table-admin">
               <thead>
                 <tr>
                   <th>ID</th>
-                  <th>Cliente</th>
-                  <th>Título</th>
+                  <th class="col-cliente">Cliente</th>
+                  <th class="col-titulo">Título</th>
                   <th>Descripción</th>
                   <th>Fecha</th>
                   <th>Estado</th>
+                  <th class="col-acciones"></th>
                 </tr>
               </thead>
               <tbody>
                 <tr v-for="r in reclamosFiltrados" :key="r.id">
                   <td>{{ r.id }}</td>
-                  <td>{{ r.usuario }}</td>
-                  <td>{{ r.titulo }}</td>
-                  <td>{{ r.descripcion }}</td>
+
+                  <td class="col-cliente" :title="r.usuario">{{ r.usuario }}</td>
+                  <td class="col-titulo" :title="r.titulo">{{ r.titulo }}</td>
+
+                  <td class="col-desc">{{ r.descripcion }}</td>
                   <td>{{ r.fechaCreacion }}</td>
                   <td>
-                    <select
-                      :value="r.estado"
-                      @change="(ev) => cambiarEstado(r, ev.target.value)"
-                    >
-                      <option
-                        v-for="opt in ESTADOS"
-                        :key="opt.value"
-                        :value="opt.value"
-                      >
+                    <select :value="r.estado" @change="(ev) => cambiarEstado(r, ev.target.value)">
+                      <option v-for="opt in ESTADOS" :key="opt.value" :value="opt.value">
                         {{ opt.label }}
                       </option>
                     </select>
+                  </td>
+
+                  <td class="acciones">
+                    <button
+                      type="button"
+                      class="icon-btn danger"
+                      title="Eliminar reclamo"
+                      aria-label="Eliminar reclamo"
+                      @click="solicitarEliminar(r)"
+                    >
+                      <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+                        <path
+                          d="M9 3h6l1 2h4v2H4V5h4l1-2Zm1 7h2v9h-2v-9Zm4 0h2v9h-2v-9ZM7 10h2v9H7v-9Zm-1 12h12a2 2 0 0 0 2-2V9H4v11a2 2 0 0 0 2 2Z"
+                        />
+                      </svg>
+                    </button>
                   </td>
                 </tr>
               </tbody>
             </table>
 
-            <p
-              v-if="!loading && !reclamosFiltrados.length"
-              class="rec-empty-text"
-            >
+            <p v-if="!loading && !reclamosFiltrados.length" class="rec-empty-text">
               No hay reclamos registrados.
             </p>
           </div>
         </div>
       </template>
 
-      <!-- CLIENTE -->
       <template v-else>
         <div class="rec-tabs">
-          <button
-            type="button"
-            class="rec-tab-btn"
-            :class="{ active: modo === 'crear' }"
-            @click="modo = 'crear'"
-          >
+          <button type="button" class="rec-tab-btn" :class="{ active: modo === 'crear' }" @click="modo = 'crear'">
             Crear reclamo
           </button>
-          <button
-            type="button"
-            class="rec-tab-btn"
-            :class="{ active: modo === 'mis-reclamos' }"
-            @click="modo = 'mis-reclamos'"
-          >
+          <button type="button" class="rec-tab-btn" :class="{ active: modo === 'mis-reclamos' }" @click="modo = 'mis-reclamos'">
             Mis reclamos
           </button>
         </div>
 
-        <!-- Crear reclamo -->
         <div v-if="modo === 'crear'" class="rec-panel">
           <h3 class="panel-title">Nuevo reclamo</h3>
 
@@ -255,15 +298,10 @@ onMounted(() => {
 
               <div class="form-group">
                 <label>Descripción (mínimo 50 caracteres)</label>
-                <textarea
-                  rows="4"
-                  v-model="nuevoReclamo.descripcion"
-                ></textarea>
+                <textarea rows="4" v-model="nuevoReclamo.descripcion"></textarea>
               </div>
 
-              <button type="submit" class="btn-ambos">
-                Validar y continuar
-              </button>
+              <button type="submit" class="btn-ambos">Validar y continuar</button>
             </form>
           </div>
 
@@ -277,32 +315,23 @@ onMounted(() => {
             </p>
 
             <div class="reclamo-confirm-buttons">
-              <button
-                type="button"
-                class="btn-ambos"
-                @click="confirmarCreacion"
-              >
+              <button type="button" class="btn-ambos" @click="confirmarCreacion">
                 Confirmar y enviar
               </button>
-              <button
-                type="button"
-                class="btn-ambos cancelar"
-                @click="cancelarCreacion"
-              >
+              <button type="button" class="btn-ambos cancelar" @click="cancelarCreacion">
                 Cancelar
               </button>
             </div>
           </div>
         </div>
 
-        <!-- Mis reclamos -->
         <div v-else class="rec-panel">
           <h3 class="panel-title">Mis reclamos</h3>
 
           <p v-if="loading">Cargando reclamos...</p>
 
           <div v-else class="rec-table-wrapper">
-            <table class="rec-table">
+            <table class="rec-table cliente">
               <thead>
                 <tr>
                   <th>ID</th>
@@ -316,17 +345,14 @@ onMounted(() => {
                 <tr v-for="r in reclamosFiltrados" :key="r.id">
                   <td>{{ r.id }}</td>
                   <td>{{ r.titulo }}</td>
-                  <td>{{ r.descripcion }}</td>
+                  <td class="col-desc">{{ r.descripcion }}</td>
                   <td>{{ r.fechaCreacion }}</td>
                   <td>{{ r.estado }}</td>
                 </tr>
               </tbody>
             </table>
 
-            <p
-              v-if="!loading && !reclamosFiltrados.length"
-              class="rec-empty-text"
-            >
+            <p v-if="!loading && !reclamosFiltrados.length" class="rec-empty-text">
               Todavía no has registrado reclamos.
             </p>
           </div>
@@ -347,7 +373,7 @@ onMounted(() => {
   background: var(--cotton-light, #fcf5e9);
   border-radius: 20px;
   padding: 2rem 1.75rem;
-  max-width: 1300px; /* un poco más ancho para que quepa todo cómodo */
+  max-width: 1300px;
   width: 100%;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18);
 }
@@ -367,7 +393,6 @@ onMounted(() => {
   font-size: 0.95rem;
 }
 
-/* Animación de fade para el modal */
 .fade-enter-active,
 .fade-leave-active {
   transition: opacity 0.15s ease;
@@ -377,7 +402,6 @@ onMounted(() => {
   opacity: 0;
 }
 
-/* Modal de alertas */
 .alert-overlay {
   position: fixed;
   inset: 0;
@@ -392,14 +416,14 @@ onMounted(() => {
   background: #ffffff;
   padding: 1.2rem 1.5rem;
   border-radius: 14px;
-  max-width: 420px;
-  width: 90%;
+  max-width: 460px;
+  width: 92%;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
   text-align: center;
 }
 
 .alert-text {
-  margin-bottom: 1rem;
+  margin-bottom: 0.9rem;
   font-size: 0.95rem;
 }
 
@@ -417,11 +441,21 @@ onMounted(() => {
   border-radius: 999px;
   background: var(--cotton-accent, #e18b6b);
   color: #ffffff;
-  font-weight: 600;
+  font-weight: 700;
   cursor: pointer;
 }
 
-/* Tabs modo cliente */
+.alert-btn.secondary {
+  background: #6c757d;
+}
+
+.confirm-actions {
+  display: flex;
+  gap: 0.6rem;
+  justify-content: center;
+  margin-top: 0.2rem;
+}
+
 .rec-tabs {
   display: inline-flex;
   gap: 0.5rem;
@@ -430,6 +464,7 @@ onMounted(() => {
   padding: 0.2rem;
   margin-bottom: 1.5rem;
 }
+
 .rec-tab-btn {
   border: none;
   background: transparent;
@@ -437,33 +472,30 @@ onMounted(() => {
   border-radius: 999px;
   cursor: pointer;
   font-size: 0.9rem;
-  font-weight: 600;
+  font-weight: 700;
   color: #555;
   transition: background 0.15s ease, color 0.15s ease;
 }
+
 .rec-tab-btn.active {
   background: #ffffff;
   color: var(--cotton-dark, #1c262e);
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
 }
 
-/* Panel blanco que contiene la tabla/form */
 .rec-panel {
   background: #ffffff;
   border-radius: 16px;
   padding: 1.5rem 1.75rem;
   border: 1px solid #dddddd;
-  /* sin overflow: queremos que la tabla se adapte, no scroll */
 }
 
-/* Títulos de panel */
 .panel-title {
   font-size: 1.1rem;
   margin-bottom: 0.75rem;
   color: var(--cotton-dark, #1c262e);
 }
 
-/* Tabla de reclamos: se ajusta al ancho disponible */
 .rec-table {
   width: 100%;
   border-collapse: collapse;
@@ -472,7 +504,7 @@ onMounted(() => {
   background: #ffffff;
   border-radius: 12px;
   overflow: hidden;
-  table-layout: fixed; /* permite repartir mejor el espacio entre columnas */
+  table-layout: fixed;
 }
 
 .rec-table thead {
@@ -486,53 +518,84 @@ onMounted(() => {
   text-align: left;
 }
 
-/* Anchos relativos por columna para que todo entre sin barra */
-.rec-table th:nth-child(1),
-.rec-table td:nth-child(1) {
-  width: 6%;   /* ID */
-}
-.rec-table th:nth-child(2),
-.rec-table td:nth-child(2) {
-  width: 18%;  /* Cliente */
-}
-.rec-table th:nth-child(3),
-.rec-table td:nth-child(3) {
-  width: 16%;  /* Título */
-}
-.rec-table th:nth-child(4),
-.rec-table td:nth-child(4) {
-  width: 38%;  /* Descripción */
-}
-.rec-table th:nth-child(5),
-.rec-table td:nth-child(5) {
-  width: 12%;  /* Fecha */
-}
-.rec-table th:nth-child(6),
-.rec-table td:nth-child(6) {
-  width: 10%;  /* Estado */
-}
-
 .rec-table th {
   color: #1c262e;
-  font-weight: 600;
+  font-weight: 700;
 }
 .rec-table td {
   color: #333333;
 }
 
-/* Descripción: que haga saltos de línea y no rompa el layout */
-.rec-table td:nth-child(4) {
+.col-desc {
   word-break: break-word;
   white-space: normal;
 }
 
-/* Select de estado: ancho justo pero sin forzar scroll */
+.rec-table-admin th.col-cliente,
+.rec-table-admin td.col-cliente {
+  width: 18%;
+  padding-right: 1.2rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rec-table-admin th.col-titulo,
+.rec-table-admin td.col-titulo {
+  width: 16%;
+  padding-left: 1.0rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.col-acciones {
+  width: 10%;
+}
+
+.acciones {
+  text-align: right;
+}
+
 .rec-table td:last-child select {
   width: 100%;
   min-width: 0;
 }
 
-/* Bloque de confirmación de reclamo (modo cliente) */
+.icon-btn {
+  border: none;
+  background: #f2f2f2;
+  border-radius: 10px;
+  width: 38px;
+  height: 38px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform 0.12s ease, background 0.12s ease;
+}
+
+.icon-btn svg {
+  fill: #1c262e;
+}
+
+.icon-btn:hover {
+  transform: translateY(-1px);
+  background: #e9e9e9;
+}
+
+.icon-btn.danger {
+  background: #c8421a;
+}
+
+.icon-btn.danger svg {
+  fill: #ffffff;
+}
+
+.icon-btn.danger:hover {
+  background: #b43a16;
+}
+
 .reclamo-confirm {
   padding: 1rem;
   border-radius: 12px;

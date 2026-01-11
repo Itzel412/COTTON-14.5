@@ -5,31 +5,72 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.stereotype.Service;
 
 import java.io.File;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.time.LocalDate;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 public class ReclamoService {
 
-    private final String RUTA_JSON = "src/main/resources/data/reclamos.json";
-
     private final ObjectMapper mapper = new ObjectMapper();
+    private final Path reclamosJsonPath;
 
     private static final List<String> ESTADOS_VALIDOS = Arrays.asList(
             "PENDIENTE", "EN_PROCESO", "CERRADO"
     );
 
+    public ReclamoService() {
+        this.reclamosJsonPath = resolveReclamosJsonPath();
+        validarArchivoExiste(this.reclamosJsonPath);
+
+        System.out.println("ReclamoService usando reclamos.json en: " + this.reclamosJsonPath.toAbsolutePath());
+    }
+
+    private Path resolveReclamosJsonPath() {
+        Path base = Paths.get(System.getProperty("user.dir")).toAbsolutePath().normalize();
+
+        Path[] candidates = new Path[] {
+                base.resolve("src/main/resources/data/reclamos.json"),
+                base.resolve("backend/src/main/resources/data/reclamos.json"),
+                base.resolve("..").resolve("backend/src/main/resources/data/reclamos.json").normalize()
+        };
+
+        for (Path p : candidates) {
+            if (Files.exists(p)) return p;
+        }
+
+        return candidates[0];
+    }
+
+    private void validarArchivoExiste(Path filePath) {
+        if (filePath == null) {
+            throw new IllegalStateException("Ruta de reclamos.json es null.");
+        }
+        if (!Files.exists(filePath)) {
+            throw new IllegalStateException(
+                    "No existe reclamos.json en la ruta esperada: " + filePath.toAbsolutePath() +
+                            " (No se creará automáticamente; debes colocarlo tú)."
+            );
+        }
+        if (!Files.isRegularFile(filePath)) {
+            throw new IllegalStateException("La ruta no es un archivo válido: " + filePath.toAbsolutePath());
+        }
+    }
+
+    private File getJsonFile() {
+        return reclamosJsonPath.toFile();
+    }
+
     private List<Reclamo> leerReclamos() {
         try {
-            File jsonFile = new File(RUTA_JSON);
-            if (!jsonFile.exists() || jsonFile.length() == 0) {
-                return new ArrayList<>();
-            }
+            File jsonFile = getJsonFile();
+            if (!jsonFile.exists() || jsonFile.length() == 0) return new ArrayList<>();
             return mapper.readValue(jsonFile, new TypeReference<List<Reclamo>>() {});
         } catch (Exception e) {
-            System.err.println("Error al leer reclamos: " + e.getMessage());
+            System.err.println("Error al leer reclamos.json: " + e.getMessage());
             e.printStackTrace();
             return new ArrayList<>();
         }
@@ -37,24 +78,47 @@ public class ReclamoService {
 
     private boolean guardarReclamos(List<Reclamo> reclamos) {
         try {
-            File jsonFile = new File(RUTA_JSON);
-            mapper.writerWithDefaultPrettyPrinter().writeValue(jsonFile, reclamos);
+            mapper.writerWithDefaultPrettyPrinter().writeValue(getJsonFile(), reclamos);
             return true;
         } catch (Exception e) {
-            System.err.println("Error al guardar reclamos: " + e.getMessage());
+            System.err.println("Error al guardar reclamos.json: " + e.getMessage());
             e.printStackTrace();
             return false;
         }
     }
 
+    private String normEmail(String s) {
+        return (s == null) ? "" : s.trim().toLowerCase();
+    }
+
     public List<Reclamo> obtenerTodos() {
         List<Reclamo> lista = leerReclamos();
+        lista.sort(Comparator.comparingLong(Reclamo::getId).reversed());
+        return Collections.unmodifiableList(lista);
+    }
+
+    public List<Reclamo> obtenerPorUsuario(String email) {
+        String emailN = normEmail(email);
+        if (emailN.isEmpty()) return Collections.emptyList();
+
+        List<Reclamo> lista = leerReclamos().stream()
+                .filter(r -> normEmail(r.getUsuario()).equals(emailN))
+                .sorted(Comparator.comparingLong(Reclamo::getId).reversed())
+                .collect(Collectors.toList());
+
         return Collections.unmodifiableList(lista);
     }
 
     public boolean crearReclamo(Reclamo nuevo) {
         try {
-            if (nuevo == null) {
+            if (nuevo == null) return false;
+
+            if (nuevo.getUsuario() == null || nuevo.getUsuario().trim().isEmpty()) {
+                System.err.println("Usuario obligatorio.");
+                return false;
+            }
+            if (nuevo.getTitulo() == null || nuevo.getTitulo().trim().isEmpty()) {
+                System.err.println("Título obligatorio.");
                 return false;
             }
             if (nuevo.getDescripcion() == null || nuevo.getDescripcion().trim().length() < 50) {
@@ -64,12 +128,17 @@ public class ReclamoService {
 
             nuevo.setEstado("PENDIENTE");
 
+            if (nuevo.getFechaCreacion() == null || nuevo.getFechaCreacion().trim().isEmpty()) {
+                nuevo.setFechaCreacion(LocalDate.now().toString()); // YYYY-MM-DD
+            }
+
             List<Reclamo> reclamos = leerReclamos();
 
             long nextId = reclamos.stream()
                     .mapToLong(Reclamo::getId)
                     .max()
                     .orElse(0L) + 1L;
+
             nuevo.setId(nextId);
 
             reclamos.add(nuevo);
@@ -84,10 +153,7 @@ public class ReclamoService {
 
     public boolean actualizarEstado(long id, String nuevoEstado) {
         try {
-            if (nuevoEstado == null) {
-                System.err.println("Estado nulo");
-                return false;
-            }
+            if (nuevoEstado == null) return false;
 
             String estadoNormalizado = nuevoEstado.trim().toUpperCase();
             if (!ESTADOS_VALIDOS.contains(estadoNormalizado)) {
@@ -96,11 +162,6 @@ public class ReclamoService {
             }
 
             List<Reclamo> reclamos = leerReclamos();
-            if (reclamos.isEmpty()) {
-                System.err.println("No hay reclamos para actualizar");
-                return false;
-            }
-
             Reclamo encontrado = reclamos.stream()
                     .filter(r -> r.getId() == id)
                     .findFirst()
@@ -116,6 +177,19 @@ public class ReclamoService {
 
         } catch (Exception e) {
             System.err.println("Error actualizando estado de reclamo: " + e.getMessage());
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    public boolean eliminarReclamo(long id) {
+        try {
+            List<Reclamo> reclamos = leerReclamos();
+            boolean eliminado = reclamos.removeIf(r -> r.getId() == id);
+            if (!eliminado) return false;
+            return guardarReclamos(reclamos);
+        } catch (Exception e) {
+            System.err.println("Error eliminando reclamo: " + e.getMessage());
             e.printStackTrace();
             return false;
         }
