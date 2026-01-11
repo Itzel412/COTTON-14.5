@@ -3,6 +3,7 @@ import { ref, computed, onMounted, watch } from 'vue';
 import {
   getProductos,
   getPedidos,
+  getFacturas,         
   createPedido,
   updatePedido,
   deletePedido,
@@ -17,13 +18,15 @@ const esAdmin = computed(() => props.currentUser?.rol === 'ADMIN');
 
 const productos = ref([]);
 const pedidos = ref([]);
+const facturas = ref([]); 
 
-const vistaCliente = ref('tienda'); 
+const vistaCliente = ref('tienda');
 const carrito = ref([]);
 const historialAgrupado = ref([]);
 
 const loadingProductos = ref(false);
 const loadingPedidos = ref(false);
+const loadingFacturas = ref(false); 
 const loadingAccion = ref(false);
 
 const error = ref(null);
@@ -31,7 +34,7 @@ const mensaje = ref(null);
 
 const modal = ref({
   visible: false,
-  tipo: 'info', 
+  tipo: 'info',
   titulo: '',
   mensaje: '',
   accionConfirmar: null,
@@ -46,7 +49,6 @@ const editForm = ref({
   usuario: '',
   idProducto: 0,
   fecha: '',
-  
   idProductoOriginal: 0,
   cantidadOriginal: 0,
   maxCantidad: 1,
@@ -55,6 +57,7 @@ const editOptions = ref({
   colores: [],
   tallas: [],
 });
+
 const abrirModalInfo = (titulo, msg) => {
   modal.value = { visible: true, tipo: 'info', titulo, mensaje: msg, accionConfirmar: null };
 };
@@ -68,11 +71,28 @@ const abrirModalConfirm = (titulo, msg, cb) => {
 const cerrarModal = () => {
   modal.value.visible = false;
 };
+
 const norm = (s) => (s ?? '').toString().trim();
 const normLower = (s) => norm(s).toLowerCase();
 const normTalla = (s) => norm(s).toUpperCase();
-
 const uniq = (arr) => Array.from(new Set(arr));
+
+const codigosFacturadosDelUsuario = computed(() => {
+  if (esAdmin.value) return new Set(); 
+  const correo = normLower(props.currentUser?.correo);
+  const set = new Set(
+    (facturas.value || [])
+      .filter(f => normLower(f.clienteCorreo) === correo)
+      .map(f => norm(f.codigoPedido))
+      .filter(Boolean)
+  );
+  return set;
+});
+
+const pedidoEstaFacturado = (codigo) => {
+  if (!codigo) return false;
+  return codigosFacturadosDelUsuario.value.has(norm(codigo));
+};
 
 const disponibilidadParaProducto = (prodId) => {
   const p = productos.value.find((x) => Number(x.id) === Number(prodId));
@@ -148,6 +168,12 @@ const recalcularOpcionesEdit = () => {
 };
 
 const abrirModalEdit = async (pedidoItem) => {
+
+  if (pedidoEstaFacturado(pedidoItem.codigo)) {
+    abrirModalInfo('Pedido facturado', `El pedido ${pedidoItem.codigo} ya está facturado y no se puede editar.`);
+    return;
+  }
+
   if (!productos.value.length) {
     loadingProductos.value = true;
     try {
@@ -173,12 +199,10 @@ const abrirModalEdit = async (pedidoItem) => {
 
     idProductoOriginal: Number(pedidoItem.idProducto || 0),
     cantidadOriginal: Number(pedidoItem.cantidad || 0),
-
     maxCantidad: 1,
   };
 
   modal.value = { visible: true, tipo: 'edit', titulo: 'Editar item', mensaje: '', accionConfirmar: null };
-
   recalcularOpcionesEdit();
 };
 
@@ -212,6 +236,19 @@ const cargarPedidos = async () => {
     abrirModalError('Error', e.message || 'No se pudo cargar pedidos.');
   } finally {
     loadingPedidos.value = false;
+  }
+};
+
+const cargarFacturas = async () => {
+  if (esAdmin.value) return; 
+  loadingFacturas.value = true;
+  try {
+    const rf = await getFacturas();
+    facturas.value = Array.isArray(rf) ? rf : [];
+  } catch (e) {
+    facturas.value = [];
+  } finally {
+    loadingFacturas.value = false;
   }
 };
 
@@ -315,7 +352,7 @@ const procesarCompraBackend = async () => {
     }
 
     carrito.value = [];
-    await Promise.all([cargarProductos(), cargarPedidos()]);
+    await Promise.all([cargarProductos(), cargarPedidos(), cargarFacturas()]);
     abrirModalInfo('¡Pedido Exitoso!', 'Tu compra ha sido registrada correctamente.');
   } catch (e) {
     abrirModalError('Error', e.message || 'Hubo un error de comunicación.');
@@ -325,6 +362,11 @@ const procesarCompraBackend = async () => {
 };
 
 const solicitarEliminarPedidoCompleto = (grupo) => {
+  if (pedidoEstaFacturado(grupo.codigo)) {
+    abrirModalInfo('Pedido facturado', `El pedido ${grupo.codigo} ya está facturado y no se puede eliminar.`);
+    return;
+  }
+
   abrirModalConfirm(
     'Eliminar pedido',
     `¿Seguro que deseas eliminar el pedido ${grupo.codigo}? Esta acción restaurará el stock.`,
@@ -336,7 +378,7 @@ const solicitarEliminarPedidoCompleto = (grupo) => {
           abrirModalError('Error', 'No se pudo eliminar el pedido completo.');
           return;
         }
-        await Promise.all([cargarProductos(), cargarPedidos()]);
+        await Promise.all([cargarProductos(), cargarPedidos(), cargarFacturas()]);
         abrirModalInfo('Eliminado', `Pedido ${grupo.codigo} eliminado correctamente.`);
       } catch (e) {
         abrirModalError('Error', e.message || 'No se pudo eliminar el pedido.');
@@ -348,6 +390,11 @@ const solicitarEliminarPedidoCompleto = (grupo) => {
 };
 
 const solicitarEliminarItem = (item) => {
+  if (pedidoEstaFacturado(item.codigo)) {
+    abrirModalInfo('Pedido facturado', `El pedido ${item.codigo} ya está facturado y no se puede eliminar items.`);
+    return;
+  }
+
   abrirModalConfirm(
     'Eliminar item',
     `¿Seguro que deseas eliminar este item del pedido ${item.codigo}?`,
@@ -359,7 +406,7 @@ const solicitarEliminarItem = (item) => {
           abrirModalError('Error', 'No se pudo eliminar el item.');
           return;
         }
-        await Promise.all([cargarProductos(), cargarPedidos()]);
+        await Promise.all([cargarProductos(), cargarPedidos(), cargarFacturas()]);
         abrirModalInfo('Eliminado', 'Item eliminado correctamente.');
       } catch (e) {
         abrirModalError('Error', e.message || 'No se pudo eliminar el item.');
@@ -373,6 +420,12 @@ const solicitarEliminarItem = (item) => {
 const guardarEdicionItem = async () => {
   if (!editForm.value.id || editForm.value.id <= 0) {
     abrirModalError('Error', 'ID inválido.');
+    return;
+  }
+
+  if (pedidoEstaFacturado(editForm.value.codigo)) {
+    cerrarModal();
+    abrirModalInfo('Pedido facturado', `El pedido ${editForm.value.codigo} ya está facturado y no se puede editar.`);
     return;
   }
 
@@ -402,12 +455,12 @@ const guardarEdicionItem = async () => {
 
     const ok = await updatePedido(payload);
     if (!ok) {
-      abrirModalError('Error', 'El backend rechazó la actualización (validación/stock).');
+      abrirModalError('Error', 'El backend rechazó la actualización (validación/stock o pedido facturado).');
       return;
     }
 
     cerrarModal();
-    await Promise.all([cargarProductos(), cargarPedidos()]);
+    await Promise.all([cargarProductos(), cargarPedidos(), cargarFacturas()]);
     abrirModalInfo('Actualizado', 'Item actualizado correctamente.');
   } catch (e) {
     abrirModalError('Error', e.message || 'No se pudo actualizar el item.');
@@ -421,12 +474,16 @@ const cambiarVistaCliente = async (v) => {
 
   if (!esAdmin.value) {
     await cargarProductos();
+    await cargarFacturas(); 
   }
   await cargarPedidos();
 };
 
 onMounted(async () => {
-  if (!esAdmin.value) await cargarProductos();
+  if (!esAdmin.value) {
+    await cargarProductos();
+    await cargarFacturas();
+  }
   await cargarPedidos();
 });
 </script>
@@ -633,7 +690,7 @@ onMounted(async () => {
         <div v-else class="ped-panel">
           <h3 class="panel-title">Historial de compras</h3>
 
-          <p v-if="loadingPedidos">Cargando pedidos...</p>
+          <p v-if="loadingPedidos || loadingFacturas">Cargando...</p>
 
           <div v-else-if="historialAgrupado.length === 0" class="vacio-msg">
             <p>No tienes pedidos registrados aún.</p>
@@ -646,6 +703,10 @@ onMounted(async () => {
                   <span class="order-id">{{ g.codigo }}</span>
                   <span class="order-items">{{ g.items.length }} artículos</span>
                   <span v-if="g.fecha" class="order-items">· {{ g.fecha }}</span>
+
+                  <span v-if="pedidoEstaFacturado(g.codigo)" class="order-items facturado">
+                    · FACTURADO
+                  </span>
                 </div>
                 <div class="order-total">${{ g.total.toFixed(2) }}</div>
               </div>
@@ -669,12 +730,25 @@ onMounted(async () => {
                       <td>{{ it.talla }}</td>
                       <td>{{ it.cantidad }}</td>
                       <td>${{ Number(it.total).toFixed(2) }}</td>
+
                       <td class="acciones">
-                        <button class="icon-btn edit" title="Editar" @click="abrirModalEdit(it)">
+                        <button
+                          class="icon-btn edit"
+                          title="Editar"
+                          :disabled="pedidoEstaFacturado(it.codigo)"
+                          :style="pedidoEstaFacturado(it.codigo) ? { opacity: 0.5, cursor: 'not-allowed' } : null"
+                          @click="abrirModalEdit(it)"
+                        >
                           <img src="/icon-edit.png" alt="Editar" />
                         </button>
 
-                        <button class="icon-btn delete" title="Eliminar" @click="solicitarEliminarItem(it)">
+                        <button
+                          class="icon-btn delete"
+                          title="Eliminar"
+                          :disabled="pedidoEstaFacturado(it.codigo)"
+                          :style="pedidoEstaFacturado(it.codigo) ? { opacity: 0.5, cursor: 'not-allowed' } : null"
+                          @click="solicitarEliminarItem(it)"
+                        >
                           <img src="/icon-delete.png" alt="Eliminar" />
                         </button>
                       </td>
@@ -684,7 +758,13 @@ onMounted(async () => {
               </div>
 
               <div class="historial-footer">
-                <button class="btn-text-danger" @click="solicitarEliminarPedidoCompleto(g)">
+                <button
+                  class="btn-text-danger"
+                  :disabled="pedidoEstaFacturado(g.codigo)"
+                  :style="pedidoEstaFacturado(g.codigo) ? { opacity: 0.5, cursor: 'not-allowed' } : null"
+                  @click="solicitarEliminarPedidoCompleto(g)"
+                  :title="pedidoEstaFacturado(g.codigo) ? 'Pedido facturado: no se puede eliminar' : 'Eliminar pedido completo'"
+                >
                   Eliminar pedido completo
                 </button>
               </div>
@@ -1092,5 +1172,9 @@ onMounted(async () => {
   .vista-tienda { flex-direction: column; }
   .bloque-carrito { width: 100%; position: static; }
   .form-grid { grid-template-columns: 1fr; }
+}
+.order-items.facturado {
+  font-weight: 900;
+  color: #b04a00;
 }
 </style>

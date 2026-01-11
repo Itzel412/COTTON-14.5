@@ -2,6 +2,7 @@ package com.franelas.cotton.pedidos;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.franelas.cotton.facturas.Factura;
 import com.franelas.cotton.inventario.Producto;
 import com.franelas.cotton.inventario.ProductoService;
 import org.springframework.stereotype.Service;
@@ -21,6 +22,7 @@ public class PedidoService {
     private final ProductoService productoService;
 
     private final Path pedidosJsonPath;
+    private final Path facturasJsonPath; // NUEVO: ruta real a facturas.json (sin copias)
 
     private static final List<String> TALLAS_VALIDAS = Arrays.asList("S", "M", "L", "XL");
 
@@ -31,10 +33,15 @@ public class PedidoService {
 
     public PedidoService(ProductoService productoService) {
         this.productoService = productoService;
+
         this.pedidosJsonPath = resolvePedidosJsonPath();
         ensureParentDirExists(this.pedidosJsonPath);
 
-        System.out.println("✅ PedidoService usando pedidos.json en: " + this.pedidosJsonPath.toAbsolutePath());
+        this.facturasJsonPath = resolveFacturasJsonPath();
+        ensureParentDirExists(this.facturasJsonPath);
+
+        System.out.println("PedidoService usando pedidos.json en: " + this.pedidosJsonPath.toAbsolutePath());
+        System.out.println("PedidoService usando facturas.json en: " + this.facturasJsonPath.toAbsolutePath());
     }
 
     private Path resolvePedidosJsonPath() {
@@ -47,11 +54,23 @@ public class PedidoService {
         };
 
         for (Path p : candidates) {
-            if (Files.exists(p)) {
-                return p;
-            }
+            if (Files.exists(p)) return p;
         }
+        return candidates[0];
+    }
 
+    private Path resolveFacturasJsonPath() {
+        Path base = Paths.get(System.getProperty("user.dir")).toAbsolutePath().normalize();
+
+        Path[] candidates = new Path[] {
+                base.resolve("src/main/resources/data/facturas.json"),
+                base.resolve("backend/src/main/resources/data/facturas.json"),
+                base.resolve("..").resolve("backend/src/main/resources/data/facturas.json").normalize()
+        };
+
+        for (Path p : candidates) {
+            if (Files.exists(p)) return p;
+        }
         return candidates[0];
     }
 
@@ -62,15 +81,36 @@ public class PedidoService {
                 Files.createDirectories(parent);
             }
             if (!Files.exists(filePath)) {
-                mapper.writerWithDefaultPrettyPrinter().writeValue(filePath.toFile(), new ArrayList<Pedido>());
+                mapper.writerWithDefaultPrettyPrinter().writeValue(filePath.toFile(), new ArrayList<>());
             }
         } catch (Exception e) {
-            throw new RuntimeException("No se pudo preparar pedidos.json en: " + filePath, e);
+            throw new RuntimeException("No se pudo preparar JSON en: " + filePath, e);
         }
     }
 
     private File getJsonFile() {
         return pedidosJsonPath.toFile();
+    }
+
+    private File getFacturasFile() {
+        return facturasJsonPath.toFile();
+    }
+
+    private boolean codigoPedidoEstaFacturado(String codigoPedido) {
+        try {
+            if (codigoPedido == null || codigoPedido.trim().isEmpty()) return false;
+
+            File jsonFile = getFacturasFile();
+            if (!jsonFile.exists() || jsonFile.length() == 0) return false;
+
+            List<Factura> facturas = mapper.readValue(jsonFile, new TypeReference<List<Factura>>() {});
+            return facturas.stream().anyMatch(f ->
+                    f.getCodigoPedido() != null && f.getCodigoPedido().equalsIgnoreCase(codigoPedido.trim())
+            );
+        } catch (Exception e) {
+            System.err.println("Aviso: No se pudo leer facturas.json para bloqueo: " + e.getMessage());
+            return false;
+        }
     }
 
     public List<Pedido> obtenerTodosLosPedidos() {
@@ -194,6 +234,11 @@ public class PedidoService {
                     .orElse(null);
             if (pedidoAnterior == null) return false;
 
+            if (codigoPedidoEstaFacturado(pedidoAnterior.getCodigo())) {
+                System.err.println("❌ No se puede editar un pedido ya facturado: " + pedidoAnterior.getCodigo());
+                return false;
+            }
+
             List<Producto> productos = productoService.obtenerTodosLosProductos();
 
             Producto productoAnterior = productos.stream()
@@ -255,6 +300,11 @@ public class PedidoService {
                     .orElse(null);
             if (pedidoAEliminar == null) return false;
 
+            if (codigoPedidoEstaFacturado(pedidoAEliminar.getCodigo())) {
+                System.err.println("No se puede eliminar un item de un pedido ya facturado: " + pedidoAEliminar.getCodigo());
+                return false;
+            }
+
             List<Producto> productos = productoService.obtenerTodosLosProductos();
             Producto productoAsociado = productos.stream()
                     .filter(p -> p.getId() == pedidoAEliminar.getIdProducto())
@@ -280,6 +330,11 @@ public class PedidoService {
     public boolean eliminarPedidosPorCodigo(String codigo) {
         try {
             if (codigo == null || codigo.trim().isEmpty()) return false;
+
+            if (codigoPedidoEstaFacturado(codigo)) {
+                System.err.println("No se puede eliminar un pedido ya facturado: " + codigo);
+                return false;
+            }
 
             List<Pedido> pedidos = leerPedidosDesdeJson();
             List<Pedido> aEliminar = pedidos.stream()
@@ -311,7 +366,7 @@ public class PedidoService {
             return false;
         }
     }
-    // ------------------ JSON IO ------------------
+
     private List<Pedido> leerPedidosDesdeJson() {
         try {
             File jsonFile = getJsonFile();
