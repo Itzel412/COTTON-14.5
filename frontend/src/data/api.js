@@ -79,6 +79,34 @@ export async function registerClientePerfil(datos) {
   return await loginRequest(payload.correo, payload.clave);
 }
 
+export async function updatePerfil(perfil) {
+    const id = perfil?.id;
+    if (!id) throw new Error('El perfil no tiene id para editar');
+
+    const response = await fetch(`${API_BASE_URL}/${id}`, {
+        method: 'PUT',
+        headers: headersJson(),
+        body: JSON.stringify(perfil),
+    });
+
+    await throwIfNotOk(response, 'Error al actualizar perfil');
+    await response.json().catch(() => null);
+    return await getPerfiles();
+}
+
+export async function deletePerfil(id) {
+    if (!id) throw new Error('Debe especificar id para eliminar perfil');
+
+    const response = await fetch(`${API_BASE_URL}/${id}`, {
+        method: 'DELETE',
+        headers: headersJson(),
+    });
+
+    await throwIfNotOk(response, 'Error al eliminar perfil');
+    await response.json().catch(() => null);
+    return await getPerfiles();
+}
+
 // 3. INVENTARIO
 export async function getProductos() {
   const response = await fetch(`${INVENTARIO_BASE_URL}/productos`);

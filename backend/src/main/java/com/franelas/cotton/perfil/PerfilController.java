@@ -14,11 +14,13 @@ public class PerfilController {
     private final PerfilService perfilService;
 
     public PerfilController(PerfilService perfilService) {
+
         this.perfilService = perfilService;
     }
 
     @GetMapping("/todos")
     public List<Perfil> consultarTodosLosPerfiles() {
+
         return perfilService.obtenerTodosLosPerfiles();
     }
 
@@ -45,9 +47,31 @@ public class PerfilController {
                     .status(HttpStatus.UNAUTHORIZED)
                     .body("Correo o clave incorrectos");
         }
-
         perfil.setClave(null);
 
         return ResponseEntity.ok(perfil);
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<?> editarPerfil(@PathVariable("id") long id, @RequestBody Perfil perfilEditado) {
+        perfilEditado.setId(id); // asegurar el id
+        String error = perfilService.actualizarPerfil(perfilEditado);
+
+        if (error != null) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+        }
+
+        return ResponseEntity.ok(true);
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<?> eliminarPerfil(@PathVariable("id") long id) {
+        String error = perfilService.eliminarPerfil(id);
+
+        if (error != null) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+        }
+
+        return ResponseEntity.ok(true);
     }
 }
