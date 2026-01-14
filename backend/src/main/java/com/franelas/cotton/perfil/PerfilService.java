@@ -5,9 +5,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.stereotype.Service;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.ArrayList;
 
 @Service
 public class PerfilService {
@@ -52,10 +52,8 @@ public class PerfilService {
 
             String correoNuevo = nuevoPerfil.getCorreo();
 
-
             String emailRegex = "^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$";
             if (correoNuevo == null || !correoNuevo.matches(emailRegex)) {
-
                 return "Error: El correo '" + correoNuevo + "' no tiene un formato valido.";
             }
 
@@ -63,7 +61,6 @@ public class PerfilService {
                     .anyMatch(perfil -> perfil.getCorreo().equalsIgnoreCase(correoNuevo));
 
             if (correoYaExiste) {
-
                 return "Error: El correo " + correoNuevo + " ya esta en uso.";
             }
 
@@ -171,16 +168,8 @@ public class PerfilService {
                 return "Error: No hay perfiles para eliminar.";
             }
 
-            boolean eliminado = false;
-            Iterator<Perfil> it = perfiles.iterator();
-            while (it.hasNext()) {
-                Perfil p = it.next();
-                if (p.getId() == id) {
-                    it.remove();
-                    eliminado = true;
-                    break;
-                }
-            }
+            // Elimina el elemento si cumple la condición y retorna true si se eliminó algo.
+            boolean eliminado = perfiles.removeIf(p -> p.getId() == id);
 
             if (!eliminado) {
                 return "Error: Perfil no encontrado para eliminar.";
