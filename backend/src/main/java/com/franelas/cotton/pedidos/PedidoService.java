@@ -22,14 +22,14 @@ public class PedidoService {
     private final ProductoService productoService;
 
     private final Path pedidosJsonPath;
-    private final Path facturasJsonPath; // NUEVO: ruta real a facturas.json (sin copias)
+    private final Path facturasJsonPath;
 
     private static final List<String> TALLAS_VALIDAS = Arrays.asList("S", "M", "L", "XL");
 
     private static final List<String> COLORES_VALIDOS =
             Arrays.asList("Blanco", "Negro", "Rojo", "Azul", "Amarillo", "Verde", "Morado");
 
-    private static final int MAX_CANTIDAD = 100;
+    private static final int MAX_CANTIDAD_VARIANTE = 10;
 
     public PedidoService(ProductoService productoService) {
         this.productoService = productoService;
@@ -145,10 +145,14 @@ public class PedidoService {
 
             List<Pedido> nuevosPedidosProcesados = new ArrayList<>();
 
+            Map<String, Integer> cantidadPorVariante = new HashMap<>();
+
             for (Pedido p : listaPedidos) {
                 if (p == null) return false;
 
-                if (p.getCantidad() <= 0 || p.getCantidad() > MAX_CANTIDAD) return false;
+                int cant = p.getCantidad();
+
+                if (cant <= 0 || cant > MAX_CANTIDAD_VARIANTE) return false;
 
                 String talla = p.getTalla() != null ? p.getTalla().trim().toUpperCase() : "";
                 if (!TALLAS_VALIDAS.contains(talla)) return false;
@@ -159,6 +163,14 @@ public class PedidoService {
                         .findFirst()
                         .orElse(null);
                 if (colorNormalizado == null) return false;
+
+                String keyVariante = colorNormalizado.toUpperCase() + "|" + talla;
+                int acumulado = cantidadPorVariante.getOrDefault(keyVariante, 0) + cant;
+                if (acumulado > MAX_CANTIDAD_VARIANTE) {
+                    System.err.println("Error: La variante " + keyVariante + " supera el máximo de " + MAX_CANTIDAD_VARIANTE);
+                    return false;
+                }
+                cantidadPorVariante.put(keyVariante, acumulado);
 
                 Producto productoEncontrado = null;
 
@@ -176,9 +188,9 @@ public class PedidoService {
                 }
 
                 if (productoEncontrado == null) return false;
-                if (productoEncontrado.getStock() < p.getCantidad()) return false;
+                if (productoEncontrado.getStock() < cant) return false;
 
-                productoEncontrado.setStock(productoEncontrado.getStock() - p.getCantidad());
+                productoEncontrado.setStock(productoEncontrado.getStock() - cant);
 
                 Pedido nuevo = new Pedido();
                 nuevo.setId(nextId++);
@@ -189,9 +201,9 @@ public class PedidoService {
                 nuevo.setIdProducto(productoEncontrado.getId());
                 nuevo.setColor(colorNormalizado);
                 nuevo.setTalla(talla);
-                nuevo.setCantidad(p.getCantidad());
+                nuevo.setCantidad(cant);
                 nuevo.setPrecioUnitario(productoEncontrado.getPrecio());
-                nuevo.setTotal(p.getCantidad() * productoEncontrado.getPrecio());
+                nuevo.setTotal(cant * productoEncontrado.getPrecio());
 
                 nuevosPedidosProcesados.add(nuevo);
             }
@@ -215,7 +227,8 @@ public class PedidoService {
             if (pedidoActualizado == null || pedidoActualizado.getId() <= 0) return false;
 
             int nuevaCantidad = pedidoActualizado.getCantidad();
-            if (nuevaCantidad <= 0 || nuevaCantidad > MAX_CANTIDAD) return false;
+
+            if (nuevaCantidad <= 0 || nuevaCantidad > MAX_CANTIDAD_VARIANTE) return false;
 
             String talla = pedidoActualizado.getTalla() != null ? pedidoActualizado.getTalla().trim().toUpperCase() : "";
             if (!TALLAS_VALIDAS.contains(talla)) return false;

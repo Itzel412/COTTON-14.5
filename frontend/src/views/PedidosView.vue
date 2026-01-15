@@ -3,7 +3,7 @@ import { ref, computed, onMounted, watch } from 'vue';
 import {
   getProductos,
   getPedidos,
-  getFacturas,         
+  getFacturas,
   createPedido,
   updatePedido,
   deletePedido,
@@ -18,7 +18,7 @@ const esAdmin = computed(() => props.currentUser?.rol === 'ADMIN');
 
 const productos = ref([]);
 const pedidos = ref([]);
-const facturas = ref([]); 
+const facturas = ref([]);
 
 const vistaCliente = ref('tienda');
 const carrito = ref([]);
@@ -26,11 +26,13 @@ const historialAgrupado = ref([]);
 
 const loadingProductos = ref(false);
 const loadingPedidos = ref(false);
-const loadingFacturas = ref(false); 
+const loadingFacturas = ref(false);
 const loadingAccion = ref(false);
 
 const error = ref(null);
 const mensaje = ref(null);
+
+const MAX_POR_VARIANTE = 10; 
 
 const modal = ref({
   visible: false,
@@ -78,7 +80,7 @@ const normTalla = (s) => norm(s).toUpperCase();
 const uniq = (arr) => Array.from(new Set(arr));
 
 const codigosFacturadosDelUsuario = computed(() => {
-  if (esAdmin.value) return new Set(); 
+  if (esAdmin.value) return new Set();
   const correo = normLower(props.currentUser?.correo);
   const set = new Set(
     (facturas.value || [])
@@ -157,7 +159,9 @@ const recalcularOpcionesEdit = () => {
   }
 
   editForm.value.idProducto = Number(match.id);
-  editForm.value.maxCantidad = Number(match.disponible || 1);
+
+  const maxPorStock = Number(match.disponible || 1);
+  editForm.value.maxCantidad = Math.min(maxPorStock, MAX_POR_VARIANTE);
 
   if (Number(editForm.value.cantidad) > Number(editForm.value.maxCantidad)) {
     editForm.value.cantidad = Number(editForm.value.maxCantidad);
@@ -168,7 +172,6 @@ const recalcularOpcionesEdit = () => {
 };
 
 const abrirModalEdit = async (pedidoItem) => {
-
   if (pedidoEstaFacturado(pedidoItem.codigo)) {
     abrirModalInfo('Pedido facturado', `El pedido ${pedidoItem.codigo} ya está facturado y no se puede editar.`);
     return;
@@ -240,7 +243,7 @@ const cargarPedidos = async () => {
 };
 
 const cargarFacturas = async () => {
-  if (esAdmin.value) return; 
+  if (esAdmin.value) return;
   loadingFacturas.value = true;
   try {
     const rf = await getFacturas();
@@ -283,11 +286,19 @@ const agregarAlCarrito = (p) => {
   );
 
   if (idx !== -1) {
-    if (carrito.value[idx].cantidad + 1 > p.stock) {
+    const nuevaCantidad = Number(carrito.value[idx].cantidad || 0) + 1;
+
+    if (nuevaCantidad > MAX_POR_VARIANTE) {
+      abrirModalInfo('Límite por variante', `Máximo ${MAX_POR_VARIANTE} unidades por talla/color en un pedido.`);
+      return;
+    }
+
+    if (nuevaCantidad > Number(p.stock || 0)) {
       abrirModalInfo('Stock', 'No hay más unidades disponibles.');
       return;
     }
-    carrito.value[idx].cantidad++;
+
+    carrito.value[idx].cantidad = nuevaCantidad;
   } else {
     carrito.value.push({
       usuario: props.currentUser.correo,
@@ -332,6 +343,14 @@ const solicitarCompra = () => {
 };
 
 const procesarCompraBackend = async () => {
+  for (const it of (carrito.value || [])) {
+    const cant = Number(it.cantidad || 0);
+    if (cant < 1 || cant > MAX_POR_VARIANTE) {
+      abrirModalError('Cantidad inválida', `Máximo ${MAX_POR_VARIANTE} unidades por talla/color.`);
+      return;
+    }
+  }
+
   loadingAccion.value = true;
   try {
     const payload = carrito.value.map((item) => ({
@@ -435,6 +454,7 @@ const guardarEdicionItem = async () => {
   }
 
   const cantidad = Number(editForm.value.cantidad || 1);
+
   if (cantidad < 1 || cantidad > Number(editForm.value.maxCantidad || 1)) {
     abrirModalError('Cantidad inválida', `La cantidad debe estar entre 1 y ${editForm.value.maxCantidad}.`);
     return;
@@ -474,7 +494,7 @@ const cambiarVistaCliente = async (v) => {
 
   if (!esAdmin.value) {
     await cargarProductos();
-    await cargarFacturas(); 
+    await cargarFacturas();
   }
   await cargarPedidos();
 };
