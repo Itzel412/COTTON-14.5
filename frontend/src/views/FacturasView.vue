@@ -15,7 +15,7 @@ const ESTADOS = ['PENDIENTE', 'PAGADA', 'ANULADA'];
 
 const modal = ref({
   visible: false,
-  tipo: 'info', 
+  tipo: 'info',
   titulo: '',
   mensaje: '',
   accion: null,
@@ -244,9 +244,9 @@ onMounted(cargarDatos);
     </div>
 
     <div v-if="modal.visible" class="modal-backdrop">
-      <div class="modal-card">
-        <h3>{{ modal.titulo }}</h3>
-        <p>{{ modal.mensaje }}</p>
+      <div class="modal-card" :class="modal.tipo">
+        <h3 class="modal-title">{{ modal.titulo }}</h3>
+        <p class="modal-msg">{{ modal.mensaje }}</p>
 
         <div class="modal-actions">
           <button v-if="modal.tipo === 'confirm'" class="btn-secondary" @click="ejecutarCancelarModal">Cancelar</button>
@@ -343,17 +343,17 @@ onMounted(cargarDatos);
   text-align:left;
   vertical-align: middle;
 }
-.dato{ 
-  font-weight:600; 
-  color:#1c262e; 
+.dato{
+  font-weight:600;
+  color:#1c262e;
 }
-.desc{ 
-  color:#555; 
-  font-size:.9rem; 
+.desc{
+  color:#555;
+  font-size:.9rem;
 }
-.precio{ 
-  font-weight:900; 
-  color:#1c262e; 
+.precio{
+  font-weight:900;
+  color:#1c262e;
 }
 
 .code{
@@ -380,28 +380,13 @@ onMounted(cargarDatos);
   display:inline-block;
 }
 
-.pendiente{ 
-  background:#fff3cd; 
-  color:#856404; 
-}
-.pagada{ 
-  background:#d4edda; 
-  color:#155724; 
-}
-.anulada{ 
-  background:#f8d7da; 
-  color:#721c24; 
-}
+.pendiente{ background:#fff3cd; color:#856404; }
+.pagada{ background:#d4edda; color:#155724; }
+.anulada{ background:#f8d7da; color:#721c24; }
 
-.select-estado.pendiente{ 
-  background:#fff3cd; 
-}
-.select-estado.pagada{ 
-  background:#d4edda; 
-}
-.select-estado.anulada{ 
-  background:#f8d7da; 
-}
+.select-estado.pendiente{ background:#fff3cd; }
+.select-estado.pagada{ background:#d4edda; }
+.select-estado.anulada{ background:#f8d7da; }
 
 .btn-primary{
   background:#1c262e;
@@ -455,17 +440,34 @@ onMounted(cargarDatos);
   align-items:center;
   z-index:1000;
 }
+
 .modal-card{
   background:#fff;
-  padding:1.6rem;
+  padding:1.7rem 1.8rem;
   border-radius:16px;
-  width:min(420px, 92%);
-  box-shadow: 0 15px 40px rgba(0,0,0,0.2);
+  width:min(520px, 92%);
+  box-shadow: 0 18px 55px rgba(0,0,0,0.28);
+  border: 1px solid rgba(0,0,0,0.08);
 }
+
+.modal-title{
+  margin: 0 0 .35rem;
+  font-size: 1.25rem;
+  font-weight: 900;
+  color: #111827; 
+}
+
+.modal-msg{
+  margin: 0;
+  font-size: .98rem;
+  line-height: 1.35;
+  color: #374151; 
+}
+
 .modal-actions{
   display:flex;
   gap:1rem;
   justify-content:flex-end;
-  margin-top:1rem;
+  margin-top:1.2rem;
 }
 </style>

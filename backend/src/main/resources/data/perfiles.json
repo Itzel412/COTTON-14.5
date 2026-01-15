@@ -34,8 +34,16 @@
   "id" : 5,
   "nombre" : "Carlos Belfort",
   "correo" : "carlosi@gmail.com",
-  "clave" : "abcdef",
+  "clave" : "12345",
   "direccion" : "si",
   "telefono" : "0412345678",
+  "rol" : "CLIENTE"
+}, {
+  "id" : 6,
+  "nombre" : "Mary Apolinar",
+  "correo" : "maryale@gmail.com.ve",
+  "clave" : "abcde",
+  "direccion" : "Paraiso",
+  "telefono" : "04123678906",
   "rol" : "CLIENTE"
 } ]

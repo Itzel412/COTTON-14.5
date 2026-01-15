@@ -1,25 +1,23 @@
 [ {
   "id" : 1,
-  "idPedido" : 1,
-  "clienteCorreo" : "canino1@correo.com",
-  "color" : "Negro",
-  "talla" : "M",
-  "cantidad" : 4,
-  "precioUnitario" : 10.5,
-  "subtotal" : 42.0,
-  "iva" : 6.72,
-  "total" : 48.72,
-  "fechaEmision" : "2025-11-11"
+  "codigoPedido" : "ORD-3B896283",
+  "clienteCorreo" : "carlos@correo.com",
+  "descripcion" : "Pedido ORD-3B896283 (1 unidades)",
+  "cantidadItems" : 1,
+  "subtotal" : 10.0,
+  "iva" : 1.6,
+  "total" : 11.6,
+  "fechaEmision" : "2026-01-15",
+  "estado" : "PENDIENTE"
 }, {
   "id" : 2,
-  "idPedido" : 2,
-  "clienteCorreo" : "carlos@correo.com",
-  "color" : "Negro",
-  "talla" : "M",
-  "cantidad" : 1,
-  "precioUnitario" : 10.5,
-  "subtotal" : 10.5,
-  "iva" : 1.68,
-  "total" : 12.18,
-  "fechaEmision" : "2025-11-11"
+  "codigoPedido" : "ORD-8CD2A181",
+  "clienteCorreo" : "diegom@gmail.com",
+  "descripcion" : "Pedido ORD-8CD2A181 (2 unidades)",
+  "cantidadItems" : 2,
+  "subtotal" : 8.8,
+  "iva" : 1.4080000000000001,
+  "total" : 10.208,
+  "fechaEmision" : "2026-01-15",
+  "estado" : "PAGADA"
 } ]

@@ -235,7 +235,7 @@ public class PedidoService {
             if (pedidoAnterior == null) return false;
 
             if (codigoPedidoEstaFacturado(pedidoAnterior.getCodigo())) {
-                System.err.println("❌ No se puede editar un pedido ya facturado: " + pedidoAnterior.getCodigo());
+                System.err.println(" No se puede editar un pedido ya facturado: " + pedidoAnterior.getCodigo());
                 return false;
             }
 

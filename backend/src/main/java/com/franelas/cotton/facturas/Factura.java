@@ -18,7 +18,6 @@ public class Factura {
 
     public Factura() {}
 
-    // --- GETTERS Y SETTERS ---
     public long getId() { return id; }
     public void setId(long id) { this.id = id; }
 

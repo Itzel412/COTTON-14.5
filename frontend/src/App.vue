@@ -12,7 +12,7 @@ import HeaderBar from './components/HeaderBar.vue';
 const currentUser = ref(null);
 const currentModule = ref('dashboard');
 
-const handleLoginSuccess = (user) => { 
+const handleLoginSuccess = (user) => {
   currentUser.value = user;
   currentModule.value = 'dashboard';
 };
@@ -24,6 +24,11 @@ const handleLogout = () => {
 
 const handleOpenModule = (modulo) => {
   currentModule.value = modulo;
+};
+
+const handlePerfilUpdated = (perfilActualizado) => {
+  if (!perfilActualizado) return;
+  currentUser.value = { ...currentUser.value, ...perfilActualizado };
 };
 </script>
 
@@ -51,6 +56,8 @@ const handleOpenModule = (modulo) => {
       <PerfilView
         v-else-if="currentModule === 'perfiles'"
         :currentUser="currentUser"
+        @perfil-updated="handlePerfilUpdated"
+        @logout="handleLogout"
       />
 
       <InventarioView
@@ -77,7 +84,6 @@ const handleOpenModule = (modulo) => {
 </template>
 
 <style>
-/* ESTILOS GLOBALES */
 body {
   margin: 0;
   padding: 0;

@@ -15,13 +15,6 @@ const headersUsuario = (currentUser) => ({
   'X-User-Role': currentUser?.rol || '',
 });
 
-// Para requests sin body (GET/DELETE) evitamos Content-Type
-const headersUsuarioSinBody = (currentUser) => ({
-  Accept: 'application/json',
-  'X-User-Email': currentUser?.correo || '',
-  'X-User-Role': currentUser?.rol || '',
-});
-
 async function throwIfNotOk(response, defaultMsg) {
   if (response.ok) return;
   const texto = await response.text().catch(() => '');
@@ -33,29 +26,46 @@ export async function loginRequest(email, password) {
   const response = await fetch(`${API_BASE_URL}/login`, {
     method: 'POST',
     headers: headersJson(),
-    body: JSON.stringify({ correo: email, clave: password }),
+    body: JSON.stringify({
+      correo: email,
+      clave: password,
+    }),
   });
 
   await throwIfNotOk(response, 'Error al iniciar sesión');
   return await response.json();
 }
 
-export async function getPerfiles() {
-  const response = await fetch(`${API_BASE_URL}/todos`);
+export async function getPerfiles(currentUser) {
+  const response = await fetch(`${API_BASE_URL}/todos`, {
+    headers: headersUsuario(currentUser),
+  });
   await throwIfNotOk(response, 'Error al obtener perfiles');
   return await response.json();
 }
 
-export async function createPerfil(nuevoPerfil) {
+export async function getMiPerfil(currentUser) {
+  const response = await fetch(`${API_BASE_URL}/me`, {
+    headers: headersUsuario(currentUser),
+  });
+  await throwIfNotOk(response, 'Error al obtener tu perfil');
+  return await response.json();
+}
+
+export async function createPerfil(nuevoPerfil, currentUser = null) {
   const response = await fetch(`${API_BASE_URL}/registrar`, {
     method: 'POST',
-    headers: headersJson(),
+    headers: currentUser ? headersUsuario(currentUser) : headersJson(),
     body: JSON.stringify(nuevoPerfil),
   });
 
   await throwIfNotOk(response, 'Error al registrar perfil');
   await response.json().catch(() => null);
-  return await getPerfiles();
+
+  if (currentUser) {
+    return await getPerfiles(currentUser);
+  }
+  return true;
 }
 
 export async function registerClientePerfil(datos) {
@@ -65,7 +75,7 @@ export async function registerClientePerfil(datos) {
     clave: datos.clave,
     direccion: datos.direccion,
     telefono: datos.telefono,
-    rol: 'CLIENTE',
+    rol: 'CLIENTE', 
   };
 
   const response = await fetch(`${API_BASE_URL}/registrar`, {
@@ -75,39 +85,39 @@ export async function registerClientePerfil(datos) {
   });
 
   await throwIfNotOk(response, 'Error al registrar cliente');
+
   await response.json().catch(() => null);
   return await loginRequest(payload.correo, payload.clave);
 }
 
-export async function updatePerfil(perfil) {
-    const id = perfil?.id;
-    if (!id) throw new Error('El perfil no tiene id para editar');
+export async function updatePerfil(id, perfil, currentUser) {
+  if (!id) throw new Error('El id es obligatorio para editar');
 
-    const response = await fetch(`${API_BASE_URL}/${id}`, {
-        method: 'PUT',
-        headers: headersJson(),
-        body: JSON.stringify(perfil),
-    });
+  const response = await fetch(`${API_BASE_URL}/${id}`, {
+    method: 'PUT',
+    headers: headersUsuario(currentUser),
+    body: JSON.stringify(perfil),
+  });
 
-    await throwIfNotOk(response, 'Error al actualizar perfil');
-    await response.json().catch(() => null);
-    return await getPerfiles();
+  await throwIfNotOk(response, 'Error al editar perfil');
+  await response.json().catch(() => null);
+  return true;
 }
 
-export async function deletePerfil(id) {
-    if (!id) throw new Error('Debe especificar id para eliminar perfil');
+export async function deletePerfil(id, currentUser) {
+  if (!id) throw new Error('El id es obligatorio para eliminar');
 
-    const response = await fetch(`${API_BASE_URL}/${id}`, {
-        method: 'DELETE',
-        headers: headersJson(),
-    });
+  const response = await fetch(`${API_BASE_URL}/${id}`, {
+    method: 'DELETE',
+    headers: headersUsuario(currentUser),
+  });
 
-    await throwIfNotOk(response, 'Error al eliminar perfil');
-    await response.json().catch(() => null);
-    return await getPerfiles();
+  await throwIfNotOk(response, 'Error al eliminar perfil');
+  await response.json().catch(() => null);
+  return true;
 }
 
-// 3. INVENTARIO
+// 2. INVENTARIO (PRODUCTOS)
 export async function getProductos() {
   const response = await fetch(`${INVENTARIO_BASE_URL}/productos`);
   await throwIfNotOk(response, 'Error al obtener el catálogo');
@@ -142,12 +152,15 @@ export async function updateProducto(producto) {
 export async function deleteProducto(id) {
   if (!id) throw new Error('El id es obligatorio para eliminar');
 
-  const response = await fetch(`${INVENTARIO_BASE_URL}/productos/${id}`, { method: 'DELETE' });
+  const response = await fetch(`${INVENTARIO_BASE_URL}/productos/${id}`, {
+    method: 'DELETE',
+  });
+
   await throwIfNotOk(response, 'Error al eliminar el producto');
   return await response.json();
 }
 
-// 4. PEDIDOS
+// 3. PEDIDOS
 export async function createPedido(listaDePedidos) {
   const response = await fetch(PEDIDOS_BASE_URL, {
     method: 'POST',
@@ -177,21 +190,25 @@ export async function updatePedido(pedido) {
 }
 
 export async function deletePedido(id) {
-  const response = await fetch(`${PEDIDOS_BASE_URL}/${id}`, { method: 'DELETE' });
+  const response = await fetch(`${PEDIDOS_BASE_URL}/${id}`, {
+    method: 'DELETE',
+  });
+
   await throwIfNotOk(response, 'Error al eliminar item del pedido');
   return await response.json();
 }
 
 export async function deletePedidoPorCodigo(codigo) {
-  const response = await fetch(`${PEDIDOS_BASE_URL}/codigo/${encodeURIComponent(codigo)}`, {
-    method: 'DELETE',
-  });
+  const response = await fetch(
+    `${PEDIDOS_BASE_URL}/codigo/${encodeURIComponent(codigo)}`,
+    { method: 'DELETE' }
+  );
 
   await throwIfNotOk(response, 'Error al eliminar pedido completo');
   return await response.json();
 }
 
-// 5. FACTURAS
+// 4. FACTURAS
 export async function getFacturas() {
   const response = await fetch(FACTURAS_BASE_URL);
   await throwIfNotOk(response, 'Error al obtener facturas');
@@ -210,7 +227,10 @@ export async function createFactura(datos) {
 }
 
 export async function deleteFactura(id) {
-  const response = await fetch(`${FACTURAS_BASE_URL}/${id}`, { method: 'DELETE' });
+  const response = await fetch(`${FACTURAS_BASE_URL}/${id}`, {
+    method: 'DELETE',
+  });
+
   await throwIfNotOk(response, 'Error al eliminar la factura');
   return await response.json();
 }
@@ -226,10 +246,10 @@ export async function updateFacturaEstado(id, nuevoEstado) {
   return await response.json();
 }
 
-// 6. RECLAMOS
+// 5. RECLAMOS 
 export async function getReclamos(currentUser) {
   const response = await fetch(RECLAMOS_BASE_URL, {
-    headers: headersUsuarioSinBody(currentUser),
+    headers: headersUsuario(currentUser),
   });
 
   await throwIfNotOk(response, 'Error al obtener reclamos');
@@ -261,20 +281,9 @@ export async function updateReclamoEstado(id, nuevoEstado, currentUser) {
 export async function deleteReclamo(id, currentUser) {
   const response = await fetch(`${RECLAMOS_BASE_URL}/${id}`, {
     method: 'DELETE',
-    headers: headersUsuarioSinBody(currentUser),
+    headers: headersUsuario(currentUser),
   });
 
   await throwIfNotOk(response, 'Error al eliminar reclamo');
-
-  const txt = await response.text().catch(() => '');
-  if (txt.trim() === '') return true;
-  if (txt.trim() === 'true') return true;
-  if (txt.trim() === 'false') return false;
-
-  try {
-    const parsed = JSON.parse(txt);
-    return typeof parsed === 'boolean' ? parsed : !!parsed;
-  } catch {
-    return false;
-  }
+  return await response.json();
 }
